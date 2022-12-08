@@ -1,0 +1,91 @@
+\documentclass[12pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage[utf8]{inputenc}
+\usepackage[english]{babel}
+\usepackage[T1]{fontenc}
+\usepackage{fourier}
+\usepackage{amsthm}
+\usepackage{amssymb}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{latexsym}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{etoolbox}
+\usepackage{hyperref}
+\usepackage{tikz}
+\usepackage{lipsum}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\N}{\mathbb{N}}
+\newcommand{\Z}{\mathbb{Z}}
+\newcommand{\Q}{\mathbb{Q}}
+\newcommand{\C}{\mathbb{C}}
+\newcommand{\s}{\vspace*{0.4cm}}
+\newcommand{\nd}{\noindent}
+
+% add counters
+
+\title{Spatial networks and small worlds}
+\author{Luca Lombardo}
+\date{Dicember 2022}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+    \noindent \lipsum[1]
+\end{abstract}
+
+\tableofcontents
+\clearpage
+
+\section{Introduction}
+Given a social network, which of its nodes are more central? This question has been asked many times in sociology, psychology and computer science, and a whole plethora of centrality measures (a.k.a. centrality indices, or rankings) were proposed to account for the importance of the nodes of a network. \s
+
+\nd These networks, typically generated directly or indirectly by human activity and interaction (and therefore hereafter dubbed social”), appear in a large variety of contexts and often exhibit a surprisingly similar structure. One of the most important notions that researchers have been trying to capture in such networks is “node centrality”: ideally, every node (often representing an individual) has some degree of influence or importance within the social domain under  consideration, and one expects such importance to surface in the structure of the social network; centrality is a quantitative measure that aims at revealing the importance of a node. \s
+
+\nd Among the types of centrality that have been considered in the literature, many have to do with distances between nodes. Take, for instance, a node in an undirected connected network: if the sum of distances to all other nodes is large, the node under consideration is peripheral; this is the starting point to define Bavelas's closeness centrality \cite{closeness}, which is the reciprocal of peripherality (i.e., the reciprocal of the sum of distances to all other nodes). \s
+
+\nd The role played by shortest paths is justified by one of the most well-known features of complex networks, the so-called small-world phenomenon. A small-world network \cite{cohen_havlin_2010} is a graph where the average distance between nodes is logarithmic in the size of the network, whereas the clustering coefficient is larger (that is, neighborhoods tend to be denser) than in a random Erdős-Rényi graph with the same size and average distance. The fact that social networks (whether electronically mediated or not) exhibit the small-world property is known at least since Milgram's famous experiment \cite{} and is arguably the most popular of all features of complex networks. For instance, the average distance of the Facebook graph was recently established to be just $4.74$ \cite{milgram1967small}. \s
+
+\subsection*{Definitions and conventions}
+
+From now on, we consider directed graphs defined by a set $N$ of $n$ nodes and $A \subseteq N \times N$ of arcs. We write $x \to y$ when $(x,y) \in A$ and call $x$ and $y$ the source and the target of the arc, respectively. \s
+\clearpage
+
+\subsection*{Aim of the project}
+
+The Aim of the project is to study the small-world phenomenon in location-based (social) networks. As test cases, we consider three real-world datasets: Brightkite, Gowalla and Foursquare. In the next sections, we will describe the datasets and the methodology we used to extract the networks from them. \s
+
+\nd We are interest in analyzing 4 different centrality measures:
+
+\begin{itemize}
+    \item Distribution of Degree
+    \item Clustering coefficient
+    \item Average Path Length
+    \item Betweenness Centrality
+\end{itemize}
+\clearpage
+
+
+\section{Theoretical background on centrality measures}
+
+Centrality is a fundamental tool in the study of social networks: the first efforts to define formally centrality indices were put forth in the late 1940s by the Group Networks Laboratory at MIT directed by Alex Bavelas \cite{closeness}; those pioneering experiments concluded that centrality was related to group efficiency in problem-solving, and agreed with the subjects' perception of leadership. In the following decades, various measures of centrality were employed in a multitude of contexts. \s
+
+\subsection*{Geometric measures}
+
+We call geometric those measures assuming that importance is a function of distances; more precisely, a geometric centrality depends only on how many nodes exist at every distance. These are some of the oldest measures defined in the literature.
+
+\paragraph*{In-degree centrality} Indegree, the number of incoming arcs $d^-(x)$, can be considered a geometric measure: it is simply the number of nodes at distance one\footnote{Most centrality measures proposed in the literature were actually described only for undirected, connected graphs. Since the study of web graphs and online social networks has posed the problem of extending centrality concepts to networks that are directed, and possibly not strongly connected, in the rest of this paper we consider measures depending on the incoming arcs of a node (e.g., incoming paths, left dominant eigenvectors, distances from all nodes to a fixed node). If necessary, these measures can be called “negative”, as opposed to the “positive” versions obtained by considering outgoing paths, or (equivalently) by transposing the graph.} . It is probably the oldest measure of importance ever used, as it is equivalent to majority voting in elections (where $x \to y$ if $x$ voted for $y$). Indegree has a number of obvious shortcomings (e.g., it is easy to spam), but it is a good baseline. \s
+
+\nd Other notable geometric measures that we will not explore in this project, are \emph{closeness centrality}, (which is the reciprocal of the sum of distances to all other nodes, and betweenness centrality, which is the number of shortest paths that pass through a node), \emph{Lin's index} (which is the sum of the distances to all other nodes), and \emph{Harmonic Centrality} (which is a generalization of the closeness centrality). \s
+
+
+\clearpage
+\bibliographystyle{unsrt}
+\bibliography{ref}
+\nocite{*}
+\end{document}

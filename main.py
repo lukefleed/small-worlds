@@ -5,6 +5,17 @@ import wget
 import zipfile
 import networkx as nx
 import pandas as pd
+from typing import Literal
+
+
+"""
+NOTEs:
+
+- This file is note meant to be run, it's just a collection of functions that are used in the other files. It's just a way to keep the code clean and organized.
+
+- Why do I use os.path.join and not the "/"? Because it's more portable, it works on every OS, while "/" works only on Linux and Mac. If you want to use it on Windows, you have to change all the "/" with "\". With os.path.join you don't have to worry about it and, as always, f*** Microsoft.
+"""
+
 
 def download_datasets():
 
@@ -55,7 +66,7 @@ def download_datasets():
     Then, if there is no dataset_tsmc2014 folder, it unzips the file. Then move all the .txt files inside the dataset_tsmc2014 folder in the foursquare folder. Then delete the dataset_tsmc2014 folder and the .zip file.
     """
 
-    for file in os.listdir("data/foursquare"):
+    for file in os.listdir(os.path.join("data", "foursquare")):
         if file.endswith(".zip"):
             if os.path.exists(os.path.join("data", "foursquare", "dataset_tsmc2014")):
                 if len(os.listdir(os.path.join("data", "foursquare"))) == 3:
@@ -84,7 +95,7 @@ def download_datasets():
             if file.endswith(".gz"):
                 os.system("gunzip {}".format(os.path.join("data", "gowalla", file)))
 
-def create_graph(dataset):
+def create_graph(dataset: Literal['brightkite', 'gowalla']) -> nx.Graph:
 
     """
     This function takes in input a tsv file with two columns, Each line in the file is an edge. The function returns an undirected networkx graph object. It uses pandas to read the file since it's faster than the standard python open() function. If we don't want to use the standard python open() function, the following code works as well:
@@ -97,36 +108,38 @@ def create_graph(dataset):
 
     """
 
-    if dataset == "brightkite":
-        file = os.path.join("data", "brightkite", "loc-brightkite_edges.txt")
-    elif dataset == "gowalla":
-        file = os.path.join("data", "gowalla", "loc-gowalla_edges.txt")
-    else:
+    if dataset not in ["brightkite", "gowalla"]:
         raise ValueError("The dataset must be brightkite or gowalla. If you want to use the foursquare dataset, use the create_foursquare_graph() function")
 
+    file = os.path.join("data", dataset, "loc-{}_edges.txt".format(dataset))
 
     df = pd.read_csv(file, sep="\t", header=None, names=["node1", "node2"])
     G = nx.from_pandas_edgelist(df, "node1", "node2", create_using=nx.Graph())
     return G
 
 
-def create_foursquare_graph(dataset):
-    # we are given a .txt in tsv format, with 8 colums. Read the file with pandas, the first two colums are colles "UserID" and "VenueID", the other 6 are useless. Then create a graph with networkx for this function. The unique users ID are the nodes, two nodes are linked, if they have been in the same venue at least once. The weight of the edge is the number of times they have been in the same venue.
+def create_foursquare_graph(dataset: Literal['NYC', 'TKY'])-> nx.Graph:
 
-    if dataset == "NYC":
-        file = os.path.join("data", "foursquare", "dataset_TSMC2014_NYC.txt")
-    elif dataset == "TKY":
-        file = os.path.join("data", "foursquare", "dataset_TSMC2014_TKY.txt")
+    """
+    This function takes in input a tsv file with 8 columns, each line in the file is a check-in. The function returns an undirected networkx graph object.
 
-    df = pd.read_csv(file, sep="\t", header=None, names=["UserID", "VenueID", "CategoryID", "CategoryName", "Latitude", "Longitude", "Timezone offset in minutes", "UTC time"])
+    Differently from the function create_graph used for the brightkite and gowalla dataset, we are not given a list of edges, so we can't use the function nx.from_pandas_edgelist. We have to create the graph manually.
 
-    # use the set() data structure to get the unique users ID
-    users = set(df["UserID"])
+    Firstly, we retrive the unique user ID using the set() data structure: this are the nodes of our graph. Since we don't want to work with adjacency matrices due to their O(mn) space complexity (even tho, we could memorize them in a compressed way thanks to their sparsity propriety), we use an adjacency list representation of the graph. We create a dictionary with the users ID as keys and the venues ID as values. Two users are connected if they have visited the same venue at least once. The weight of the edge is the number of common venues.
+    """
+
+    if dataset not in ["NYC", "TKY"]:
+        raise ValueError("The dataset must be NYC or TKY")
+
+    file = os.path.join("data", "foursquare", "dataset_TSMC2014_{}.txt".format(dataset))
+
+    df = pd.read_csv(file, sep="\t", header=None, names=["UserID", "VenueID", "CategoryID", "CategoryName", "Latitude", "Longitude", "Timezone offset in minutes", "UTC time"], encoding="utf-8", encoding_errors="ignore")
+
+    users = set(df["UserID"]) # get the unique users ID
     G = nx.Graph()
     G.add_nodes_from(users)
 
-    # create a dictionary with the users ID as keys and the venues ID as values
-    users_venues = {}
+    users_venues = {} # key: user ID, value: set of venues ID
     for user in users:
         users_venues[user] = set(df[df["UserID"] == user]["VenueID"])
 

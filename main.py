@@ -95,30 +95,8 @@ def download_datasets():
             if file.endswith(".gz"):
                 os.system("gunzip {}".format(os.path.join("data", "gowalla", file)))
 
-def create_graph(dataset: Literal['brightkite', 'gowalla']) -> nx.Graph:
 
-    """
-    This function takes in input a tsv file with two columns, Each line in the file is an edge. The function returns an undirected networkx graph object. It uses pandas to read the file since it's faster than the standard python open() function. If we don't want to use the standard python open() function, the following code works as well:
-
-    G = nx.Graph()
-    with open(file, "r") as f:
-        for line in f:
-            node1, node2 = line.split("\t")
-            G.add_edge(node1, node2)
-
-    """
-
-    if dataset not in ["brightkite", "gowalla"]:
-        raise ValueError("The dataset must be brightkite or gowalla. If you want to use the foursquare dataset, use the create_foursquare_graph() function")
-
-    file = os.path.join("data", dataset, "loc-{}_edges.txt".format(dataset))
-
-    df = pd.read_csv(file, sep="\t", header=None, names=["node1", "node2"])
-    G = nx.from_pandas_edgelist(df, "node1", "node2", create_using=nx.Graph())
-    return G
-
-
-def create_foursquare_graph(dataset: Literal['NYC', 'TKY'])-> nx.Graph:
+def foursquare_checkins_graph(dataset: Literal['NYC', 'TKY'])-> nx.Graph:
 
     """
     This function takes in input a tsv file with 8 columns, each line in the file is a check-in. The function returns an undirected networkx graph object.
@@ -149,5 +127,28 @@ def create_foursquare_graph(dataset: Literal['NYC', 'TKY'])-> nx.Graph:
             if user1 != user2:
                 if len(users_venues[user1].intersection(users_venues[user2])) > 0:
                     G.add_edge(user1, user2, weight=len(users_venues[user1].intersection(users_venues[user2])))
+
+    return G
+
+
+def friendships_graph(dataset: Literal['brightkite', 'gowalla']) -> nx.Graph:
+
+    """
+    This function takes in input a tsv file with two columns, Each line in the file is an edge. The function returns an undirected networkx graph object. It uses pandas to read the file since it's faster than the standard python open() function. If we don't want to use the standard python open() function, the following code works as well:
+
+    G = nx.Graph()
+    with open(file, "r") as f:
+        for line in f:
+            node1, node2 = line.split("\t")
+            G.add_edge(node1, node2)
+
+    """
+
+    if dataset not in ["brightkite", "gowalla"]:
+        raise ValueError("The dataset must be brightkite or gowalla")
+
+    file = os.path.join("data", dataset, "loc-{}_edges.txt".format(dataset))
+    df = pd.read_csv(file, sep="\t", header=None, names=["node1", "node2"])
+    G = nx.from_pandas_edgelist(df, "node1", "node2", create_using=nx.Graph())
 
     return G

@@ -1,5 +1,6 @@
 # /bin/env/python3
 
+from itertools import combinations
 import os
 import wget
 import zipfile
@@ -96,40 +97,44 @@ def download_datasets():
                 os.system("gunzip {}".format(os.path.join("data", "gowalla", file)))
 
 
-def foursquare_checkins_graph(dataset: Literal['NYC', 'TKY'])-> nx.Graph:
+def create_checkins_graph(dataset: Literal['brightkite', 'gowalla', 'foursquareNYC', 'foursquareTKY'])-> nx.Graph:
 
     """
-    This function takes in input a tsv file with 8 columns, each line in the file is a check-in. The function returns an undirected networkx graph object.
+    This function takes in input a tsv file, each line in the file is a check-in. The function returns an undirected networkx graph object.
 
-    Differently from the function create_graph used for the brightkite and gowalla dataset, we are not given a list of edges, so we can't use the function nx.from_pandas_edgelist. We have to create the graph manually.
-
-    Firstly, we retrive the unique user ID using the set() data structure: this are the nodes of our graph. Since we don't want to work with adjacency matrices due to their O(mn) space complexity (even tho, we could memorize them in a compressed way thanks to their sparsity propriety), we use an adjacency list representation of the graph. We create a dictionary with the users ID as keys and the venues ID as values. Two users are connected if they have visited the same venue at least once. The weight of the edge is the number of common venues.
+    Firstly, we retrive the unique user ID: this are the nodes of our graph. We create a dictionary with the users ID as keys and the venues ID as values. Two users are connected if they have visited the same venue at least once. The weight of the edge is the number of common venues.
     """
 
-    if dataset not in ["NYC", "TKY"]:
-        raise ValueError("The dataset must be NYC or TKY")
+    if dataset not in ['brightkite', 'gowalla',
+     'foursquareNYC', 'foursquareTKY']:
+        raise ValueError("Dataset not valid. Please choose between brightkite, gowalla, foursquareNYC, foursquareTKY")
 
-    file = os.path.join("data", "foursquare", "dataset_TSMC2014_{}.txt".format(dataset))
+    # based on the dataset, we have to read the file in a different way.
+    if dataset == "foursquareNYC":
+        file = os.path.join("data", "foursquare", "dataset_TSMC2014_NYC.txt")
+        df = pd.read_csv(file, sep="\t", header=None, names=["UserID", "VenueID", "CategoryID", "CategoryName", "Latitude", "Longitude", "LocalTime" ,"UTCtime",], encoding="utf-8", encoding_errors="ignore")
 
-    df = pd.read_csv(file, sep="\t", header=None, names=["UserID", "VenueID", "CategoryID", "CategoryName", "Latitude", "Longitude", "Timezone offset in minutes", "UTC time"], encoding="utf-8", encoding_errors="ignore")
+    elif dataset == "foursquareTKY":
+        file = os.path.join("data", "foursquare", "dataset_TSMC2014_TKY.txt")
+        df = pd.read_csv(file, sep="\t", header=None, names=["UserID", "VenueID", "CategoryID", "CategoryName", "Latitude", "Longitude", "LocalTime" ,"UTCtime",], encoding="utf-8", encoding_errors="ignore")
+    else:
+        file = os.path.join("data", dataset, "loc-{}_totalCheckins.txt".format(dataset))
+        df = pd.read_csv(file, sep="\t", header=None, names=["UserID", "CheckIn", "latitude", "longitude", "VenueID"], encoding="utf-8", encoding_errors="ignore")
 
-    users = set(df["UserID"]) # get the unique users ID
+    # get the unique users ID
+    users = df["UserID"].unique()
     G = nx.Graph()
     G.add_nodes_from(users)
+    print("Number of nodes added to the graph {}: {}".format(dataset, G.number_of_nodes()))
 
-    users_venues = {} # key: user ID, value: set of venues ID
-    for user in users:
-        users_venues[user] = set(df[df["UserID"] == user]["VenueID"])
+    users_venues = df.groupby("UserID")["VenueID"].apply(list).to_dict()
 
-    # create the edges
-    for user1 in users: # nested for loop in python, I'm crying. C++ I miss you
-        for user2 in users:
-            if user1 != user2:
-                if len(users_venues[user1].intersection(users_venues[user2])) > 0:
-                    G.add_edge(user1, user2, weight=len(users_venues[user1].intersection(users_venues[user2])))
+    for user1, user2 in combinations(users, 2):
+        intersection = set(users_venues[user1]) & set(users_venues[user2])
+        if len(intersection) > 0:
+            G.add_edge(user1, user2, weight=len(intersection))
 
-    return G
-
+    print("Number of edges added to the graph {}: {}".format(dataset, G.number_of_edges()))
 
 def friendships_graph(dataset: Literal['brightkite', 'gowalla']) -> nx.Graph:
 

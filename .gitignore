@@ -132,7 +132,6 @@ dmypy.json
 data/
 
 # Latex stuff
-
 *.aux
 *.bbl
 *.blg
@@ -143,3 +142,5 @@ data/
 *.synctex.gz
 *.toc
 *.txt
+
+.vscode/

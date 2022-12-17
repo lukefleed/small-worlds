@@ -1,0 +1,97 @@
+\clearpage
+\section{Characterization of real-world networks}
+
+
+\subsection{Properties of real-world networks}
+
+\texttt{Una piccola introduzione}
+
+\subsubsection{Degree distribution}
+
+\nd The degree of a node is the number of links connected to it. In directed networks, one can distinguish between the in-degree, out-degree, and the total degree (which is the sum of the two). The degree distribution, $P(k)$, is the fraction of sites having degree $k$. As can be seen above, many real networks do not exhibit a Poisson degree
+distribution, as predicted in the ER model. In fact, many of them exhibit a distribution with a long, power-law, tail, $P(k) \sim k^{-\gamma}$ with some $\gamma$, usually between 2 and 3.
+
+\subsubsection{Distances and optimal paths}
+
+\nd Since many networks are not embedded in real space, the geometrical distance between nodes is meaningless. The most important distance measure in such networks is the minimal number of hops (or chemical distance). That is, the distance between two nodes in the network is defined as the number of edges in the shortest path between them. If the edges are assumed to be weighted, the lowest total weight path, called the \emph{optimal path}, may also be used. The usual mathematical definition of the diameter of the network is the length of the path between the farthest nodes in
+the network.
+
+\subsubsection{Clustering}
+
+\nd The clustering coefficient is usually related to a community represented by local structures. The usual definition of clustering (sometimes also referred to as transitivity) is related to the number of triangles in the network. The clustering is high if two nodes sharing a neighbor have a high probability of being connected to each other. There are two common definitions of clustering. The first is global,
+
+\begin{equation}
+    C = \frac{3 \times \text{the number of triangles in the network}}{\text{the number of connected triples of vertices}}
+\end{equation}
+
+\nd where a “connected triple” means a single vertex with edges running to an unordered
+pair of other vertices. \s
+
+\nd A second definition of clustering is based on the average of the clustering for single
+nodes. The clustering for a single node is the fraction of pairs of its linked neighbors
+out of the total number of pairs of its neighbors:
+
+\begin{equation}
+    C_i = \frac{\text{the number of triangles connected to vertex }i}{\text{the number of triples centered on vertex } i}
+\end{equation}
+
+\nd For vertices with degree $0$ or $1$, for which both numerator and denominator are zero, we use $C_i = 0$. Then the clustering coefficient for the whole network is the average
+
+\begin{equation}
+    C = \frac{1}{n} \sum_{i} C_i
+\end{equation}
+
+\nd In both cases the clustering is in the range $0 \leq C \leq 1$. \s
+
+\nd In random graph models such as the ER model and the configuration model, the clustering coefficient is low and decreases to $0$ as the system size increases. This is also the situation in many growing network models. However, in many real-world networks the clustering coefficient is rather high and remains constant for large network sizes. This observation led to the introduction of the small-world model, which offers a combination of a regular lattice with high clustering and a random graph.
+
+\subsubsection{Correlations}
+In random graph models, it is usually assumed that there are no correlations between
+the degrees of neighboring nodes. That is, the probability of reaching a node by
+following a link is independent of the node from which the link emanated. In many
+real-world networks, however, this is not the case. Several types of correlations exist, depending on the internal properties of the nodes. However, when considering only the network topology, the main types of correlations that have been studied are the degree-degree correlations. \s
+
+\nd Degree-degree correlations are represented by $P(k, k')$, the probability that a node of degree $k$ is connected to a node of degree $k$ . If no correlation exists, given an edge, then the probability that it leads to a node of degree $k$ is $k P(k)/ \langle \rangle$. Thus, the probability that an edge leads from a node of degree $k$ to a node of degree $k$ is $P(k,k') = kk' P(k)P(k')/ \langle k \rangle^2$ (where each direction of the edge is counted separately). \s
+
+\nd An alternative approach for studying correlations is analyzing the average
+degree of neighboring nodes as a function of the degree, i.e., $\langle k\rangle_{nn} (k)$. This yields a one-parameter curve that can be easily studied. One can also calculate the correlation coefficient, $r$ , between the degrees of neighboring sites
+
+\begin{equation}
+    r = \frac{\langle k_i k_j \rangle - \langle k^2 \rangle}{\langle k^2 \rangle - \langle k \rangle}
+\end{equation}
+
+\nd where averages are taken over all pairs of neighbors, $i$ and $j$.
+
+
+\subsection{Betweenness centrality: what is your importance in the network?}
+
+% Path-based measures exploit not only the existence of shortest paths but actually take into examination all shortest paths (or all paths) coming into a node. We remark that in-degree can be considered a path-based measure, as it is the equivalent to the number of incoming paths of length one. \s
+
+% \nd Betweenness centrality  was introduced for edges, and then rephrased. The idea is to measure the probability that a random shortest path passes through a given node: if $\sigma_{yz}$ is the number of shortest paths going from $y$ to $z$, and $\sigma{yz}(x)$ is the number of such paths that pass through $x$, we define the betweenness of $x$ as
+
+% \begin{equation}
+%     \label{eq:betweenness}
+%     \beta(x) = \sum_{y \neq x \neq z} \frac{\sigma_{yz}(x)}{\sigma_{yz}}.
+% \end{equation}
+
+% \nd The intuition behind betweenness is that if a large fraction of shortest paths passes through $x$, then $x$ is an important junction point of the network. Indeed, removing nodes in betweenness order causes a very quick disruption of the network.
+
+The importance of a node in a network depends on many factors. A website may be important due to its content, a router due to its capacity. Of course, all of these properties depend on the nature
+of the studied network, and may have very little to do with the graph structure of the network. We are particularly interested in the importance of a node (or a link) due to its topological  function in the network. It is reasonable to assume that the topology of a network may dictate some intrinsic importance for different nodes. One measure of centrality can be the degree of a
+node. The higher the degree, the more the node is connected, and therefore, the higher is its centrality in the network. However, the degree is not the only factor determining a node's importance \s
+
+\nd One of the most accepted definitions of centrality is based on counting paths going through a node. For each node, i, in the network, the number of “routing” paths to all other nodes (i.e., paths through which data flow) going through i is counted, and this number determines the centrality i. The most common selection is taking only
+the shortest paths as the routing paths. This leads to the following definition: the \emph{betweenness centrality} of a node, i, equals the number of shortest paths between all pairs of nodes in the network going through it, i.e.,
+
+\begin{equation} \label{eq:betweenness}
+    g(i) = \sum_{\{ j,k \}} g_i (j,k)
+\end{equation}
+
+\nd where the notation $\{j, k\}$ stands for summing each pair once, ignoring the order, and $g_i(j, k)$ equals $1$ if the shortest path between nodes $j$ and $k$ passes through node $i$ and $0$ otherwise. In fact, in networks with no weight (i.e., where all edges have the same length), there might be more than one shortest path. In that case, it is common to take $g_i(j, k) = C_i(j,k)/C(j,k)$, where $C(j,k)$ is the number of shortest paths between
+$j$ and $k$, and $C_i(j,k)$ is the number of those going through $i$. \footnote{Several variations of
+this scheme exist, focusing, in particular, on how to count distinct shortest paths (if several shortest paths share some edges). These differences tend to have a very small statistical influence in random complex networks, where the number of short loops is small. Therefore, we will concentrate on the above definition \ref{eq:betweenness}. Another nuance is whether the source and destination are considered part of the shortest path.
+This is also irrelevant for very high degree nodes, on which we will mainly focus.} \s
+
+\nd The usefulness of the betweenness centrality in identifying bottlenecks and important nodes in the network has led to applications in identifying communities in biological and social networks. \s
+
+\paragraph{Alternative} There are other approaches to the importance of nodes. A well-known example is the Page Rank algorithm used to determine the importance of WWW pages based on the links pointing to them. This algorithm initiates a random walk at a random node, following a random link at each node, with some small probability, at every step, of jumping to a randomly chosen node without following a link. This algorithm gives high importance (high probability of hitting) to nodes with a high number of links pointing to them, and also to nodes pointed to by these nodes

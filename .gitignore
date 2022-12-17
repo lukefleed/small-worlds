@@ -144,3 +144,5 @@ data/
 *.txt
 
 .vscode/
+backup/
+sources/

@@ -37,7 +37,7 @@ unordered_map<string, set<string>> createDictFromFile(string filename) {
 
     // Return the dictionary
     return dict;
-    }
+}
 
 // void create_tsv_multi(unordered_map<string, vector<string>> dict, mutex& dict_mutex) {
 //       // Create an output stream to write the file
@@ -67,15 +67,14 @@ unordered_map<string, set<string>> createDictFromFile(string filename) {
 //       }
 //     }
 
-void create_tsv(unordered_map<string, set<string>> dict) {
+void create_tsv(const unordered_map<string, set<string>>& dict, string outfilename) {
     // Create an output stream to write the file
-    ofstream out_file("data/foursquare/foursquareTKY_checkins_graph.tsv");
+    ofstream out_file(outfilename);
 
     // Loop over all the key-value pairs in the map
     unsigned long long i = 0;
     for (const auto& kv1 : dict) {
-        i++;
-        if (i%100 == 0) cout << (((double)i) * 100 / dict.size()) << "%" << "\r" << flush;
+        if (!((++i) & 127)) cout << (((double)i) * 100 / dict.size()) << "%\r" << flush;
 
         for (const auto& kv2 : dict) {
             // Check if the keys are the same
@@ -95,30 +94,29 @@ void create_tsv(unordered_map<string, set<string>> dict) {
 }
 
 void print_help() {
-  cout << "Usage: ./main [IN_FILE] [OUT_FILE]" << endl;
+    cout << "Usage: ./main IN_FILE_PATH OUT_FILE_PATH" << endl;
+    cout << "Suggested options: \n\t./main data/brightkite/brightkite_checkins.txt data/brightkite/brightkite_checkins_graph.tsv \n\t./main data/gowalla/gowalla_checkins.txt data/gowalla/gowalla_checkins_graph.tsv \n\t./main data/foursquare/foursquare_checkins.txt data/foursquare/foursquare_checkins_graph.tsv" << endl;
 }
 
-int main() {
-    unordered_map<string, set<string>> dict = createDictFromFile("data/foursquare/foursquare_checkins_TKY.txt");
-    create_tsv(dict);
-}
-
-
-
-// int main(int argc, const char* argv[]) {
-
-//     if (argc == 3) {
-//         string in_file = argv[1];
-//         string out_file = argv[2];
-//     if (in_file == "-h" || in_file == "--help" || out_file == "-h" || out_file == "--help") {
-//         print_help();
-//         return 0;
-//         }
-//     } else {
-//         print_help();
-//         return 0;
-//     }
-//     unordered_map<string, set<string>> dict = createDictFromFile("test.txt");
+// int main() {
+//     unordered_map<string, set<string>> dict = createDictFromFile("data/foursquare/foursquare_checkins_TKY.txt");
 //     create_tsv(dict);
-
 // }
+
+int main(int argc, const char* argv[]) {
+
+    if (argc == 3) {
+        string in_file = argv[1];
+        string out_file = argv[2];
+        if (in_file == "-h" || in_file == "--help" || out_file == "-h" || out_file == "--help") {
+            print_help();
+            return 0;
+        }
+        unordered_map<string, set<string>> dict = createDictFromFile(in_file);
+        create_tsv(dict, out_file);
+        return 0;
+    } else {
+        print_help();
+        return 0;
+    }
+}

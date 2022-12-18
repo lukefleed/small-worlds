@@ -6,7 +6,10 @@ NOTEs:
 - Why do I use os.path.join and not the "/"? Because it's more portable, it works on every OS, while "/" works only on Linux and Mac. In windows you would have to change all the "/" with "\". With os.path.join you don't have to worry about it and, as always, f*** Microsoft.
 """
 
+from multiprocessing import Pool
+import itertools
 import os
+import random
 import wget
 import zipfile
 import pandas as pd
@@ -18,7 +21,7 @@ import plotly.graph_objects as go
 from collections import Counter
 import numpy as np
 import gdown
-
+from networkx.utils import py_random_state
 
 # ------------------------------------------------------------------------#
 
@@ -92,7 +95,9 @@ def download_datasets():
     for file in os.listdir(os.path.join("data", "brightkite")):
         if file.endswith("_totalCheckins.txt"):
             df = pd.read_csv(os.path.join("data", "brightkite", file), sep="\t", header=None, names=["user_id", "check-in time", "latitude", "longitude", "venue_id"])
-            df = df[["user_id", "venue_id"]]
+            df["check-in time"] = pd.to_datetime(df["check-in time"])
+            df = df[df["check-in time"].dt.year == 2010]
+            df = df.drop(["check-in time", "latitude", "longitude"], axis=1)
             df.to_csv(os.path.join("data", "brightkite", "brightkite_checkins.txt"), sep="\t", header=False, index=False, errors="ignore", encoding="utf-8")
             os.remove(os.path.join("data", "brightkite", file))
 
@@ -114,8 +119,28 @@ def download_datasets():
 
 # ------------------------------------------------------------------------#
 
-
 def create_graph_from_checkins(dataset: Literal['brightkite', 'gowalla', 'foursquareEU', 'foursquareIT'], create_file = True) -> nx.Graph:
+
+    """
+    Create a graph from the checkins of the dataset. The graph is undirected and the nodes are the users and the edges are the checkins in common.
+
+    Parameters
+    ----------
+    `dataset` : Literal['brightkite', 'gowalla', 'foursquareEU', 'foursquareIT']
+        The dataset to use.
+    `create_file` : bool, optional
+        If True, the graph is saved in a file, by default True
+
+    Returns
+    -------
+    `G` : networkx.Graph
+
+    Raises
+    ------
+    ValueError
+        If the dataset is not valid.
+
+    """
 
     if dataset not in ['brightkite', 'gowalla', 'foursquareEU', 'foursquareIT']:
         raise ValueError("Dataset not valid. Please choose between brightkite, gowalla, foursquareEU, foursquareUS, foursquareIT")
@@ -166,7 +191,7 @@ def create_graph_from_checkins(dataset: Literal['brightkite', 'gowalla', 'foursq
 
         elif dataset == "foursquareEU":
             # list of the countries in the EU
-            EU_countries = ['AT', 'BE', 'BG', 'CY', 'CZ', 'DE', 'DK', 'EE', 'ES', 'FI', 'FR', 'GB', 'GR', 'HR', 'HU', 'IE', 'IT', 'LT', 'LU', 'LV', 'MT', 'NL', 'PL', 'PT', 'RO', 'SE', 'SI', 'SK']
+            EU_countries = ['AT', 'BE', 'BG', 'CY', 'CZ', 'DE', 'DK', 'EE', 'ES', 'FI', 'FR', 'GR', 'HR', 'HU', 'IE', 'IT', 'LT', 'LU', 'LV', 'MT', 'NL', 'PL', 'PT', 'RO', 'SE', 'SI', 'SK']
 
             venues_array = df_POIS[df_POIS['country code'].isin(EU_countries)]['venue_id'].values
 
@@ -201,7 +226,22 @@ def create_graph_from_checkins(dataset: Literal['brightkite', 'gowalla', 'foursq
 def create_friendships_graph(dataset: Literal['brightkite', 'gowalla', 'foursquareEU', 'foursquareIT']) -> nx.Graph:
 
     """
-    This function takes in input a tsv file with two columns, Each line in the file is an edge. The function returns an undirected networkx graph object.
+    Create the graph of friendships for the dataset brightkite, gowalla or foursquare.
+    The graph is saved in a file.
+
+    Parameters
+    ----------
+    `dataset` : str
+        The dataset for which we want to create the graph of friendships.
+
+    Returns
+    -------
+    `G` : networkx.Graph
+        The graph of friendships.
+
+    Notes
+    -----
+    Since we are taking sub-samples of each check-ins dataset, we are also taking sub-samples of the friendship graph. A user is included in the friendship graph if he has at least one check-in in the sub-sample.
     """
 
     if dataset not in ["brightkite", "gowalla", "foursquareEU", "foursquareIT"]:
@@ -231,10 +271,11 @@ def create_friendships_graph(dataset: Literal['brightkite', 'gowalla', 'foursqua
 
         # create the graph
         G = nx.from_pandas_edgelist(df, "node1", "node2", create_using=nx.Graph())
+        del df_friends_all, df_checkins, df
 
         return G
 
-    elif dataset == "gowalla":
+    elif dataset in ["brightkite", "gowalla"]:
         file = os.path.join("data", dataset, dataset + "_friends_edges.txt")
 
         df_friends_all = pd.read_csv(file, sep="\t", header=None, names=["node1", "node2"])
@@ -250,22 +291,36 @@ def create_friendships_graph(dataset: Literal['brightkite', 'gowalla', 'foursqua
         df.to_csv(os.path.join("data", dataset, dataset + "_friends_edges_filtered.tsv"), sep="\t", header=False, index=False)
 
         G = nx.from_pandas_edgelist(df, "node1", "node2", create_using=nx.Graph())
+        del df_friends_all, df_checkins, df
+
         return G
 
-    elif dataset == "brightkite":
-        file = os.path.join("data", dataset, dataset + "_friends_edges.txt")
-        df_friends_all = pd.read_csv(file, sep="\t", header=None, names=["node1", "node2"])
-
-        G = nx.from_pandas_edgelist(df_friends_all, "node1", "node2", create_using=nx.Graph())
-        return G
+# ------------------------------------------------------------------------#
 
 def degree_distribution(G: nx.Graph, log: bool = True, save: bool = False) -> None:
 
         """
-        This function takes in input a networkx graph and as options:
-        - log = True/False (default = True)
-        - save = True/False (default = False)
-        The functions plots, using the plotly library, the degree distribution of the graph. If log = True, the plot is in log-log scale. If save = True, the plot is saved in the folder "plots" with the name "degree_distribution_{}.png" where {} is the name of the graph in input.
+        This function takes in input a networkx graph object and plots the degree distribution of the graph.
+
+        Parameters
+        ----------
+        `G` : networkx graph object
+            The graph object
+
+        `log` : bool, optional
+            If True, the plot will be in log-log scale, by default True
+
+        `save` : bool, optional
+            If True, the plot will be saved in the folder "plots", by default False
+
+        Returns
+        -------
+        None
+
+        Notes
+        -----
+        Due to the characteristics of datasets, not using a log log scale will lead to a un-useful plot. Even if using a log scales alters the power-law distribution, it is still clearly visible and distinguishable from a poisson distribution (witch is what we are interested in in this case)
+
         """
 
         degrees = [G.degree(n) for n in G.nodes()]
@@ -303,45 +358,182 @@ def degree_distribution(G: nx.Graph, log: bool = True, save: bool = False) -> No
 
 # ------------------------------------------------------------------------#
 
-def average_clustering(G: nx.Graph) -> float:
+def chunks(l, n):
+    """
+    Auxiliary function to divide a list of nodes `l` in `n` chunks
 
-        """
-        This function takes in input a networkx graph and returns the average clustering coefficient of the graph.
-        """
+    Parameters
+    ----------
+    `l` : list
+        List of nodes
 
-        sum_clustering = 0
-        for node in G.nodes():
-            sum_clustering += nx.clustering(G, node)
+    `n` : int
+        Number of chunks
 
-        return sum_clustering / G.number_of_nodes()
+    """
+
+    l_c = iter(l)
+    while 1:
+        x = tuple(itertools.islice(l_c, n))
+        if not x:
+            return
+        yield x
 
 # ------------------------------------------------------------------------#
 
-def watts_strogatz_model(G: nx.Graph, p = 0.1) -> nx.Graph:
+def betweenness_centrality_parallel(G, processes=None, k =None) -> dict:
+    """
+    Compute the betweenness centrality for nodes in a graph using multiprocessing.
 
-        """
-        This function takes in input a networkx graph and a probability p and returns a new graph obtained by applying the Watts-Strogatz model to the input graph.
+    Parameters
+    ----------
+    G : graph
+        A networkx graph
 
-        It computes k as the average degree of the input graph.
-        """
+    processes : int, optional
+        The number of processes to use for computation.
+        If `None`, then it sets processes = 1
 
-        k = int(round(np.mean(list(dict(G.degree()).values()))))
+    k : int, optional
+        Percent of nodes to sample. If `None`, then all nodes are used.
 
-        G_new = nx.watts_strogatz_graph(G.number_of_nodes(), k, p)
-        G_new = nx.Graph(G_new)
-        G_new.name = "watts_strogatz_{}_{}_{}" .format(G.name, p, k)
+    seed : int, optional
+        Seed for random number generator (default=None).
 
-        return G_new
+    Returns
+    -------
+    dict
 
-def mean_shortest_path(G: nx.Graph) -> float:
+    Notes
+    -----
+    Do not use more then 6 process for big graphs, otherwise the memory will be full. Do it only if you have more at least 32 GB of RAM. For small graphs, you can use more processes.
+
+    """
+
+    # if process is None or 1, run the standard algorithm with one process
+    if processes is None or processes == 1:
+        print("\tRunning the networkx approximated algorithm with just one process")
+        G_copy = G.copy()
+        sample = int((k)*G_copy.number_of_nodes())
+        print("\tNumber of nodes after removing {} % of nodes: {}" .format((k)*100, G_copy.number_of_nodes()))
+        return np.mean(nx.betweenness_centrality(G, k=sample, seed=42).values())
+
+    if processes > os.cpu_count():
+        raise ValueError("The number of processes must be less than the number of cores in the system.")
+
+    if k is not None:
+        if (k < 0 or k > 1):
+            raise ValueError("k must be between 0 and 1.")
+        else:
+            G_copy = G.copy()
+            G_copy.remove_nodes_from(random.sample(G_copy.nodes(), int((k)*G_copy.number_of_nodes())))
+            print("\tNumber of nodes after removing {}% of nodes: {}" .format((k)*100, G_copy.number_of_nodes()))
+            print("\tNumber of edges after removing {}% of nodes: {}" .format((k)*100, G_copy.number_of_edges()))
+
+    p = Pool(processes=processes)
+    node_divisor = len(p._pool) * 4
+    node_chunks = list(chunks(G_copy.nodes(), G_copy.order() // node_divisor))
+    num_chunks = len(node_chunks)
+    bt_sc = p.starmap(
+        nx.betweenness_centrality_subset,
+        zip(
+            [G_copy] * num_chunks, # this returns a list of Gs
+            node_chunks,
+            [list(G_copy)] * num_chunks, # this returns a list of lists of nodes
+            [True] * num_chunks,
+            [None] * num_chunks,
+        ),
+    )
+
+    # Reduce the partial solutions
+    bt_c = bt_sc[0]
+    for bt in bt_sc[1:]:
+        for n in bt:
+            bt_c[n] += bt[n]
+
+    return bt_c
+
+# ------------------------------------------------------------------------#
+
+def average_shortest_path(G: nx.Graph, k=None) -> float:
 
         """
         This function takes in input a networkx graph and returns the average shortest path length of the graph. This works also for disconnected graphs.
+
+        Parameters
+        ----------
+        `G` : networkx graph
+            The graph to compute the average shortest path length of.
+        `k` : int
+            percentage of nodes to remove from the graph. If k is None, the average shortest path length of each connected component is computed using all the nodes of the connected component.
+
+        Returns
+        -------
+        float
+            The average shortest path length of the graph.
+
+        Raises
+        ------
+        ValueError
+            If k is not between 0 and 1
         """
 
-        tmp = 0
-        connected_components = list(nx.connected_components(G))
-        for C in (G.subgraph(c).copy() for c in connected_components):
-            tmp += (nx.average_shortest_path_length(C, method='dijkstra'))
+        if k is not None and (k < 0 or k > 1):
+            raise ValueError("k must be between 0 and 1")
+        elif k is None:
+            connected_components = list(nx.connected_components(G))
+        else:
+            G_copy = G.copy()
+            # remove the k% of nodes from G
+            G_copy.remove_nodes_from(random.sample(G_copy.nodes(), int((k)*G_copy.number_of_nodes())))
+            print("\tNumber of nodes after removing {}% of nodes: {}" .format((k)*100, G_copy.number_of_nodes()))
+            print("\tNumber of edges after removing {}% of nodes: {}" .format((k)*100, G_copy.number_of_edges()))
 
-        return tmp/len(list(connected_components))
+        tmp = 0
+        connected_components = list(nx.connected_components(G_copy))
+        # remove all the connected components with less than 10 nodes
+        connected_components = [c for c in connected_components if len(c) > 10]
+
+        print("\tNumber of connected components with more then 10 nodes: {}" .format(len(connected_components)), "\r")
+        for C in (G_copy.subgraph(c).copy() for c in connected_components):
+            print("\tComputing average shortest path length of connected component with {} nodes and {} edges" .format(C.number_of_nodes(), C.number_of_edges()), "\r", end="")
+            tmp += nx.average_shortest_path_length(C)
+
+        return np.mean(tmp)
+
+# ------------------------------------------------------------------------#
+
+def average_clustering_coefficient(G: nx.Graph, k=None) -> float:
+
+            """
+            This function takes in input a networkx graph and returns the average clustering coefficient of the graph. This works also for disconnected graphs.
+
+            Parameters
+            ----------
+            G : networkx graph
+                The graph to compute the average clustering coefficient of.
+            k : int
+                percentage of nodes to remove from the graph. If k is None, the average clustering coefficient of each connected component is computed using all the nodes of the connected component.
+
+            Returns
+            -------
+            float
+                The average clustering coefficient of the graph.
+
+            Raises
+            ------
+            ValueError
+                If k is not between 0 and 1
+            """
+
+            if k is not None and (k < 0 or k > 1):
+                raise ValueError("k must be between 0 and 1")
+
+            elif k is None:
+                return nx.average_clustering(G)
+
+            else:
+                G_copy = G.copy()
+                G_copy.remove_nodes_from(random.sample(list(G_copy.nodes()), int((k)*G_copy.number_of_nodes())))
+                print("\tNumber of nodes after removing {}% of nodes: {}" .format((k)*100, G_copy.number_of_nodes()))
+                return nx.average_clustering(G_copy)

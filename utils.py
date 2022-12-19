@@ -537,3 +537,112 @@ def average_clustering_coefficient(G: nx.Graph, k=None) -> float:
                 G_copy.remove_nodes_from(random.sample(list(G_copy.nodes()), int((k)*G_copy.number_of_nodes())))
                 print("\tNumber of nodes after removing {}% of nodes: {}" .format((k)*100, G_copy.number_of_nodes()))
                 return nx.average_clustering(G_copy)
+
+# ------------------------------------------------------------------------#
+
+
+def create_random_graphs(G: nx.Graph, model = None, save = True) -> nx.Graph:
+
+    """Create a random graphs of the same model of the original graph G.
+
+    Parameters
+    ----------
+    G : nx.Graph
+        The original graph.
+    model : str
+        The model to use to generate the random graphs. It can be one of the following: "erdos", "barabasi", "watts_strogatz", "newman_watts_strog
+    save: bool
+        If True, the random graph is saved in the folder data/random/model
+
+    Returns
+    -------
+    G_random : nx.Graph
+
+    """
+
+    if model is None:
+        model = "erdos"
+
+    if model == "erdos":
+        G_random = nx.erdos_renyi_graph(G.number_of_nodes(), nx.density(G))
+        print("\tNumber of edges in the original graph: {}" .format(G.number_of_edges()))
+        print("\tNumber of edges in the random graph: {}" .format(G_random.number_of_edges()))
+        G_random.name = G.name + " erdos"
+
+        if save:
+            # check if the folder exists, otherwise create it
+            if not os.path.exists(os.path.join('data', 'random', 'erdos')):
+                os.makedirs(os.path.join('data', 'random', 'erdos'))
+
+            nx.write_gpickle(G_random, os.path.join('data', 'random', 'erdos', "erdos_" + str(G.number_of_nodes()) + "_" + str(G_random.number_of_edges()) + ".gpickle"))
+            print("\tThe file graph has been saved in the folder data/random/erdos with the syntax erdos_n_nodes_n_edges.gpickle")
+
+        return G_random
+
+    elif model == "watts_strogatz":
+        p = G.number_of_edges() / (G.number_of_nodes())
+        avg_degree = int(np.mean([d for n, d in G.degree()]))
+        G_random = nx.watts_strogatz_graph(G.number_of_nodes(), avg_degree, p)
+        print("\tNumber of edges in the original graph: {}" .format(G.number_of_edges()))
+        print("\tNumber of edges in the random graph: {}" .format(G_random.number_of_edges()))
+        G_random.name = G.name + " watts_strogatz"
+
+        if save:
+            # check if the folder exists, otherwise create it
+            if not os.path.exists(os.path.join('data', 'random', 'watts_strogatz')):
+                os.makedirs(os.path.join('data', 'random', 'watts_strogatz'))
+
+            nx.write_gpickle(G_random, os.path.join('data', 'random', 'watts_strogatz', "watts_strogatz_" + str(G.number_of_nodes()) + "_" + str(G_random.number_of_edges()) + ".gpickle"))
+            print("\tThe file graph has been saved in the folder data/random/watts_strogatz with the syntax watts_strogatz_n_nodes_n_edges.gpickle")
+
+        return G_random
+
+    # elif model == "regular":
+    #     G_random = nx.random_regular_graph(1, G.number_of_nodes())
+    #     print("\tNumber of edges in the original graph: {}" .format(G.number_of_edges()))
+    #     print("\tNumber of edges in the random graph: {}" .format(G_random.number_of_edges()))
+    #     G_random.name = G.name + "regular"
+
+    #     if save:
+    #         # check if the folder exists, otherwise create it
+    #         if not os.path.exists(os.path.join('data', 'random', 'regular')):
+    #             os.makedirs(os.path.join('data', 'random', 'regular'))
+
+    #         nx.write_gpickle(G_random, os.path.join('data', 'random', 'regular', "regular_" + str(G.number_of_nodes()) + "_" + str(G_random.number_of_edges()) + ".gpickle"))
+    #         print("\tThe file graph has been saved in the folder data/random/regular with the syntax regular_n_nodes_n_edges.gpickle")
+
+        # return G_random
+
+    # elif model == "reference":
+    #     G_random = nx.random_reference(G)
+    #     print("\tNumber of edges in the original graph: {}" .format(G.number_of_edges()))
+    #     print("\tNumber of edges in the random graph: {}" .format(G_random.number_of_edges()))
+    #     G_random.name = G.name + "reference"
+
+    #     if save:
+    #         # check if the folder exists, otherwise create it
+    #         if not os.path.exists(os.path.join('data', 'random', 'reference')):
+    #             os.makedirs(os.path.join('data', 'random', 'reference'))
+
+    #         nx.write_gpickle(G_random, os.path.join('data', 'random', 'reference', "reference_" + str(G.number_of_nodes()) + "_" + str(G_random.number_of_edges()) + ".gpickle"))
+    #         print("\tThe file graph has been saved in the folder data/random/reference with the syntax reference_n_nodes_n_edges.gpickle")
+
+    #     return G_random
+
+    # #lattice
+    # elif model == "lattice":
+    #     G_random = nx.lattice_reference(G, 1)
+    #     print("\tNumber of edges in the original graph: {}" .format(G.number_of_edges()))
+    #     print("\tNumber of edges in the random graph: {}" .format(G_random.number_of_edges()))
+    #     G_random.name = G.name + "lattice"
+
+
+    #     if save:
+    #         # check if the folder exists, otherwise create it
+    #         if not os.path.exists(os.path.join('data', 'random', 'lattice')):
+    #             os.makedirs(os.path.join('data', 'random', 'lattice'))
+
+    #         nx.write_gpickle(G_random, os.path.join('data', 'random', 'lattice', "lattice_" + str(G.number_of_nodes()) + "_" + str(G_random.number_of_edges()) + ".gpickle"))
+    #         print("\tThe file graph has been saved in the folder data/random/lattice with the syntax lattice_n_nodes_n_edges.gpickle")
+
+    #     return G_random

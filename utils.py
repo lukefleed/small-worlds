@@ -430,6 +430,9 @@ def betweenness_centrality_parallel(G, processes=None, k =None) -> dict:
             print("\tNumber of nodes after removing {}% of nodes: {}" .format((k)*100, G_copy.number_of_nodes()))
             print("\tNumber of edges after removing {}% of nodes: {}" .format((k)*100, G_copy.number_of_edges()))
 
+    if k is None:
+        G_copy = G.copy()
+
     p = Pool(processes=processes)
     node_divisor = len(p._pool) * 4
     node_chunks = list(chunks(G_copy.nodes(), G_copy.order() // node_divisor))
@@ -481,6 +484,7 @@ def average_shortest_path(G: nx.Graph, k=None) -> float:
         if k is not None and (k < 0 or k > 1):
             raise ValueError("k must be between 0 and 1")
         elif k is None:
+            G = G.copy()
             connected_components = list(nx.connected_components(G))
         else:
             G_copy = G.copy()
@@ -567,7 +571,7 @@ def create_random_graphs(G: nx.Graph, model = None, save = True) -> nx.Graph:
         G_random = nx.erdos_renyi_graph(G.number_of_nodes(), nx.density(G))
         print("\tNumber of edges in the original graph: {}" .format(G.number_of_edges()))
         print("\tNumber of edges in the random graph: {}" .format(G_random.number_of_edges()))
-        G_random.name = G.name + " erdos"
+        G_random.name = G.name + " Erdos-Renyi"
 
         if save:
             # check if the folder exists, otherwise create it
@@ -585,7 +589,7 @@ def create_random_graphs(G: nx.Graph, model = None, save = True) -> nx.Graph:
         G_random = nx.watts_strogatz_graph(G.number_of_nodes(), avg_degree, p)
         print("\tNumber of edges in the original graph: {}" .format(G.number_of_edges()))
         print("\tNumber of edges in the random graph: {}" .format(G_random.number_of_edges()))
-        G_random.name = G.name + " watts_strogatz"
+        G_random.name = G.name + " Watts-Strogatz"
 
         if save:
             # check if the folder exists, otherwise create it

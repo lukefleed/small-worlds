@@ -18,7 +18,7 @@ It should be clarified that real networks are not random. Their formation and de
 \nd The simplest way to treat clustering analytically in a small-world network is to use the link addition, rather than the rewiring model. In the limit of large network size, $N \to \infty$, and for a fixed fraction of shortcuts $\phi$, it is clear that the probability of forming triangle vanishes as we approach $1/N$, so the contribution of the shortcuts to the clustering is negligible. Therefore, the clustering of a small-world network is determined by its underlying ordered lattice. For example, consider a ring where each node is connected to its $k$ closest neighbors from each side. A node's number of neighbors is therefore $2k$, and thus it has $2k(2k - 1)/2 = k(2k - 1)$ pairs of neighbors. Consider a node, $i$. All of the $k$ nearest nodes on $i$'s left are connected to each other, and the same is true for the nodes on $i$'s right. This amounts to $2k(k - 1)/2 = k(k - 1)$ pairs. Now consider a node located $d$ places to the left of $k$. It is also connected to its $k$ nearest neighbors from each side. Therefore, it will be connected to $k - d$ neighbors on $i$'s right side. The total number of connected neighbor pairs is
 
 \begin{equation}
-    k(k-1) + \sum_{d=1}^k (k-d) = k(k-1) + \frac{k(k-1)}{2} = \frac{{3}{2}} k (k-1)
+    k(k-1) + \sum_{d=1}^k (k-d) = k(k-1) + \frac{k(k-1)}{2} = \frac{3}{2} k (k-1)
 \end{equation}
 
 \nd and the clustering coefficient is:

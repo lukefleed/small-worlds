@@ -509,41 +509,63 @@ def average_shortest_path(G: nx.Graph, k=None) -> float:
 
 def average_clustering_coefficient(G: nx.Graph, k=None) -> float:
 
-            """
-            This function takes in input a networkx graph and returns the average clustering coefficient of the graph. This works also for disconnected graphs.
+    """
+    This function takes in input a networkx graph and returns the average clustering coefficient of the graph. This works also for disconnected graphs.
 
-            Parameters
-            ----------
-            G : networkx graph
-                The graph to compute the average clustering coefficient of.
-            k : int
-                percentage of nodes to remove from the graph. If k is None, the average clustering coefficient of each connected component is computed using all the nodes of the connected component.
+    Parameters
+    ----------
+    G : networkx graph
+        The graph to compute the average clustering coefficient of.
+    k : int
+        percentage of nodes to remove from the graph. If k is None, the average clustering coefficient of each connected component is computed using all the nodes of the connected component.
 
-            Returns
-            -------
-            float
-                The average clustering coefficient of the graph.
+    Returns
+    -------
+    float
+        The average clustering coefficient of the graph.
 
-            Raises
-            ------
-            ValueError
-                If k is not between 0 and 1
-            """
+    Raises
+    ------
+    ValueError
+        If k is not between 0 and 1
+    """
 
-            if k is not None and (k < 0 or k > 1):
-                raise ValueError("k must be between 0 and 1")
+    if k is not None and (k < 0 or k > 1):
+        raise ValueError("k must be between 0 and 1")
 
-            elif k is None:
-                return nx.average_clustering(G)
+    elif k is None:
+        return nx.average_clustering(G)
 
-            else:
-                G_copy = G.copy()
-                G_copy.remove_nodes_from(random.sample(list(G_copy.nodes()), int((k)*G_copy.number_of_nodes())))
-                print("\tNumber of nodes after removing {}% of nodes: {}" .format((k)*100, G_copy.number_of_nodes()))
-                return nx.average_clustering(G_copy)
+    else:
+        G_copy = G.copy()
+        G_copy.remove_nodes_from(random.sample(list(G_copy.nodes()), int((k)*G_copy.number_of_nodes())))
+        print("\tNumber of nodes after removing {}% of nodes: {}" .format((k)*100, G_copy.number_of_nodes()))
+        return nx.average_clustering(G_copy)
 
+
+def generalized_average_clustering_coefficient(G: nx.Graph) -> float:
+    
+    """
+    Generalized definition of the average clustering coefficient of a graph. It better applies to small world networks and it's way more efficient than the average_clustering_coefficient function with the standard definition of the clustering coefficient.
+
+    Parameters
+    ----------
+    G : networkx graph
+        The graph to compute the generalized average clustering coefficient of.
+
+    Returns
+    -------
+    float
+        The generalized average clustering coefficient of the graph.
+    """
+    
+    C = 0
+    for node in G.nodes():
+        k = G.degree(node)
+        C += (3*(k-1))/(2*(2*k - 1))
+
+    return C/G.number_of_nodes()
 # ------------------------------------------------------------------------#
-
 
 def create_random_graphs(G: nx.Graph, model = None, save = True) -> nx.Graph:
 
@@ -601,52 +623,4 @@ def create_random_graphs(G: nx.Graph, model = None, save = True) -> nx.Graph:
 
         return G_random
 
-    # elif model == "regular":
-    #     G_random = nx.random_regular_graph(1, G.number_of_nodes())
-    #     print("\tNumber of edges in the original graph: {}" .format(G.number_of_edges()))
-    #     print("\tNumber of edges in the random graph: {}" .format(G_random.number_of_edges()))
-    #     G_random.name = G.name + "regular"
-
-    #     if save:
-    #         # check if the folder exists, otherwise create it
-    #         if not os.path.exists(os.path.join('data', 'random', 'regular')):
-    #             os.makedirs(os.path.join('data', 'random', 'regular'))
-
-    #         nx.write_gpickle(G_random, os.path.join('data', 'random', 'regular', "regular_" + str(G.number_of_nodes()) + "_" + str(G_random.number_of_edges()) + ".gpickle"))
-    #         print("\tThe file graph has been saved in the folder data/random/regular with the syntax regular_n_nodes_n_edges.gpickle")
-
-        # return G_random
-
-    # elif model == "reference":
-    #     G_random = nx.random_reference(G)
-    #     print("\tNumber of edges in the original graph: {}" .format(G.number_of_edges()))
-    #     print("\tNumber of edges in the random graph: {}" .format(G_random.number_of_edges()))
-    #     G_random.name = G.name + "reference"
-
-    #     if save:
-    #         # check if the folder exists, otherwise create it
-    #         if not os.path.exists(os.path.join('data', 'random', 'reference')):
-    #             os.makedirs(os.path.join('data', 'random', 'reference'))
-
-    #         nx.write_gpickle(G_random, os.path.join('data', 'random', 'reference', "reference_" + str(G.number_of_nodes()) + "_" + str(G_random.number_of_edges()) + ".gpickle"))
-    #         print("\tThe file graph has been saved in the folder data/random/reference with the syntax reference_n_nodes_n_edges.gpickle")
-
-    #     return G_random
-
-    # #lattice
-    # elif model == "lattice":
-    #     G_random = nx.lattice_reference(G, 1)
-    #     print("\tNumber of edges in the original graph: {}" .format(G.number_of_edges()))
-    #     print("\tNumber of edges in the random graph: {}" .format(G_random.number_of_edges()))
-    #     G_random.name = G.name + "lattice"
-
-
-    #     if save:
-    #         # check if the folder exists, otherwise create it
-    #         if not os.path.exists(os.path.join('data', 'random', 'lattice')):
-    #             os.makedirs(os.path.join('data', 'random', 'lattice'))
-
-    #         nx.write_gpickle(G_random, os.path.join('data', 'random', 'lattice', "lattice_" + str(G.number_of_nodes()) + "_" + str(G_random.number_of_edges()) + ".gpickle"))
-    #         print("\tThe file graph has been saved in the folder data/random/lattice with the syntax lattice_n_nodes_n_edges.gpickle")
-
-    #     return G_random
+    

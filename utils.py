@@ -126,7 +126,7 @@ def create_graph_from_checkins(dataset: Literal['brightkite', 'gowalla', 'foursq
 
     Parameters
     ----------
-    `dataset` : Literal['brightkite', 'gowalla', 'foursquareEU', 'foursquareIT']
+    `dataset` : Literal['brightkite', 'gowalla', 'foursquare']
         The dataset to use.
     `create_file` : bool, optional
         If True, the graph is saved in a file, by default True
@@ -142,85 +142,38 @@ def create_graph_from_checkins(dataset: Literal['brightkite', 'gowalla', 'foursq
 
     """
 
-    if dataset not in ['brightkite', 'gowalla', 'foursquareEU', 'foursquareIT']:
-        raise ValueError("Dataset not valid. Please choose between brightkite, gowalla, foursquareEU, foursquareUS, foursquareIT")
+    if dataset not in ['brightkite', 'gowalla', 'foursquare']:
+        raise ValueError("Dataset not valid. Please choose between brightkite, gowalla, foursquare")
 
-    if dataset in ['brightkite', 'gowalla']:
-        file = os.path.join("data", dataset, dataset + "_checkins.txt")
+    
+    file = os.path.join("data", dataset, dataset + "_checkins.txt")
 
-        print("\nCreating the graph for the dataset {}...".format(dataset))
+    print("\nCreating the graph for the dataset {}...".format(dataset))
 
-        df = pd.read_csv(file, sep="\t", header=None, names=["user_id", "venue_id"])
+    df = pd.read_csv(file, sep="\t", header=None, names=["user_id", "venue_id"], engine='pyarrow')
 
-        G = nx.Graph()
-        venues_users = df.groupby("venue_id")["user_id"].apply(set)
+    G = nx.Graph()
+    venues_users = df.groupby("venue_id")["user_id"].apply(set)
 
-        for users in tqdm.tqdm(venues_users):
-            for user1, user2 in combinations(users, 2):
-                G.add_edge(user1, user2)
+    for users in tqdm.tqdm(venues_users):
+        for user1, user2 in combinations(users, 2):
+            G.add_edge(user1, user2)
 
-        # path to the file where we want to save the graph
-        edges_path = os.path.join("data", dataset , dataset + "_checkins_edges.tsv")
+    # path to the file where we want to save the graph
+    edges_path = os.path.join("data", dataset , dataset + "_checkins_edges.tsv")
 
-        print("Done! The graph has {} edges".format(G.number_of_edges()), " and {} nodes".format(G.number_of_nodes()))
+    print("Done! The graph has {} edges".format(G.number_of_edges()), " and {} nodes".format(G.number_of_nodes()))
 
-        # delete from memory the dataframe
-        del df
+    # delete from memory the dataframe
+    del df
 
-        if create_file:
-            # save the graph in a file
-            nx.write_edgelist(G, edges_path, data=True, delimiter="\t", encoding="utf-8")
+    if create_file:
+        # save the graph in a file
+        nx.write_edgelist(G, edges_path, data=True, delimiter="\t", encoding="utf-8")
 
-        return G
+    return G
 
-    else:
-        # path to the checkins file and the POIS file
-        path_checkins = os.path.join("data", "foursquare", "foursquare_checkins.txt")
-        path_POIS = os.path.join("data", "foursquare", "raw_POIs.txt")
-
-        # dataframe with the checkins, we need only the user_id and the venue_id
-        df_all = pd.read_csv(path_checkins, sep="\t", header=None, names=['user_id', 'venue_id', 'time', 'offset'])
-        df_all = df_all[['user_id', 'venue_id']]
-
-        # dataframe with the POIS, we need only the venue_id and the country code
-        df_POIS = pd.read_csv(path_POIS, sep='\t', header=None, names=['venue_id', 'lat', 'lon', 'category', 'country code'])
-        df_POIS = df_POIS[['venue_id', 'country code']]
-
-        if dataset == "foursquareIT":
-            venues_array = df_POIS[df_POIS['country code'] == 'IT']['venue_id'].values
-
-        elif dataset == "foursquareEU":
-            # list of the countries in the EU
-            EU_countries = ['AT', 'BE', 'BG', 'CY', 'CZ', 'DE', 'DK', 'EE', 'ES', 'FI', 'FR', 'GR', 'HR', 'HU', 'IE', 'IT', 'LT', 'LU', 'LV', 'MT', 'NL', 'PL', 'PT', 'RO', 'SE', 'SI', 'SK']
-
-            venues_array = df_POIS[df_POIS['country code'].isin(EU_countries)]['venue_id'].values
-
-        print("\nCreating the graph for the dataset {}...".format(dataset))
-
-        # we create a dataframe with the checkins in the corresponding country
-        df_country = df_all[df_all['venue_id'].isin(venues_array)]
-
-        G = nx.Graph()
-        venues_users = df_country.groupby("venue_id")["user_id"].apply(set)
-
-        for users in tqdm.tqdm(venues_users):
-            for user1, user2 in combinations(users, 2):
-                G.add_edge(user1, user2)
-
-        # path to the file where we want to save the graph
-        edges_path = os.path.join("data", "foursquare", dataset + "_checkins_edges.tsv")
-
-        print("Done! The graph has {} edges".format(G.number_of_edges()), " and {} nodes".format(G.number_of_nodes()))
-
-        # delete from memory the dataframes
-        del df_all, df_POIS, df_country
-
-        if create_file:
-            # save the graph in a file
-            nx.write_edgelist(G, edges_path, data=True, delimiter="\t", encoding="utf-8")
-
-        return G
-
+    
 # ------------------------------------------------------------------------#
 
 def create_friendships_graph(dataset: Literal['brightkite', 'gowalla', 'foursquareEU', 'foursquareIT']) -> nx.Graph:
@@ -244,56 +197,28 @@ def create_friendships_graph(dataset: Literal['brightkite', 'gowalla', 'foursqua
     Since we are taking sub-samples of each check-ins dataset, we are also taking sub-samples of the friendship graph. A user is included in the friendship graph if he has at least one check-in in the sub-sample.
     """
 
-    if dataset not in ["brightkite", "gowalla", "foursquareEU", "foursquareIT"]:
+    if dataset not in ["brightkite", "gowalla", "foursquare"]:
         raise ValueError("The dataset must be brightkite, gowalla or foursquare")
 
-    if dataset in ["foursquareEU", "foursquareIT"]:
-        file = os.path.join("data", "foursquare", "foursquare_friends_edges.txt")
+   
+    file = os.path.join("data", dataset, dataset + "_friends_edges.txt")
 
-        # dataframe with the edges of the graph (friends)
-        df_friends_all = pd.read_csv(file, sep="\t", header=None, names=["node1", "node2"])
+    df_friends_all = pd.read_csv(file, sep="\t", header=None, names=["node1", "node2"], engine='pyarrow')
+    unique_friends = set(df_friends_all["node1"].unique()).union(set(df_friends_all["node2"].unique()))
 
-        # set of the unique users in the graph (friends)
-        unique_friends = set(df_friends_all["node1"].unique()).union(set(df_friends_all["node2"].unique()))
+    df_checkins = pd.read_csv(os.path.join("data", dataset, dataset + "_checkins_edges.tsv"), sep="\t", header=None, names=["node1", "node2"])
+    unique_checkins = set(df_checkins["node1"].unique()).union(set(df_checkins["node2"].unique()))
 
-        # dataframe with the edges of the graph (checkins)
-        df_checkins = pd.read_csv(os.path.join("data", "foursquare", dataset + "_checkins_edges.tsv"), sep="\t", header=None, names=["node1", "node2"])
-        unique_checkins = set(df_checkins["node1"].unique()).union(set(df_checkins["node2"].unique()))
+    unique_users = unique_friends.intersection(unique_checkins)
 
-        # take the intersection of the two sets
-        unique_users = unique_friends.intersection(unique_checkins)
+    df = df_friends_all[df_friends_all["node1"].isin(unique_users) & df_friends_all["node2"].isin(unique_users)]
 
-        # create a dataframe with the edges of the graph
-        df = df_friends_all[df_friends_all["node1"].isin(unique_users) & df_friends_all["node2"].isin(unique_users)]
+    df.to_csv(os.path.join("data", dataset, dataset + "_friends_edges_filtered.tsv"), sep="\t", header=False, index=False)
 
-        # create a tsv file with the edges of the graph that ends with _filtered.tsv
-        df.to_csv(os.path.join("data", "foursquare", dataset + "_friends_edges_filtered.tsv"), sep="\t", header=False, index=False)
+    G = nx.from_pandas_edgelist(df, "node1", "node2", create_using=nx.Graph())
+    del df_friends_all, df_checkins, df
 
-        # create the graph
-        G = nx.from_pandas_edgelist(df, "node1", "node2", create_using=nx.Graph())
-        del df_friends_all, df_checkins, df
-
-        return G
-
-    elif dataset in ["brightkite", "gowalla"]:
-        file = os.path.join("data", dataset, dataset + "_friends_edges.txt")
-
-        df_friends_all = pd.read_csv(file, sep="\t", header=None, names=["node1", "node2"])
-        unique_friends = set(df_friends_all["node1"].unique()).union(set(df_friends_all["node2"].unique()))
-
-        df_checkins = pd.read_csv(os.path.join("data", dataset, dataset + "_checkins_edges.tsv"), sep="\t", header=None, names=["node1", "node2"])
-        unique_checkins = set(df_checkins["node1"].unique()).union(set(df_checkins["node2"].unique()))
-
-        unique_users = unique_friends.intersection(unique_checkins)
-
-        df = df_friends_all[df_friends_all["node1"].isin(unique_users) & df_friends_all["node2"].isin(unique_users)]
-
-        df.to_csv(os.path.join("data", dataset, dataset + "_friends_edges_filtered.tsv"), sep="\t", header=False, index=False)
-
-        G = nx.from_pandas_edgelist(df, "node1", "node2", create_using=nx.Graph())
-        del df_friends_all, df_checkins, df
-
-        return G
+    return G
 
 # ------------------------------------------------------------------------#
 
@@ -484,7 +409,7 @@ def average_shortest_path(G: nx.Graph, k=None) -> float:
         if k is not None and (k < 0 or k > 1):
             raise ValueError("k must be between 0 and 1")
         elif k is None:
-            G = G.copy()
+            G_copy = G.copy()
             connected_components = list(nx.connected_components(G))
         else:
             G_copy = G.copy()

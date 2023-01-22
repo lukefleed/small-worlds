@@ -22,100 +22,100 @@ from collections import Counter
 import numpy as np
 import gdown
 from networkx.utils import py_random_state
+import shutil
 
 # ------------------------------------------------------------------------#
 
 def download_datasets():
 
-    urls = [
-        ["https://snap.stanford.edu/data/loc-brightkite_edges.txt.gz", "https://snap.stanford.edu/data/loc-brightkite_totalCheckins.txt.gz"],
-        ["https://snap.stanford.edu/data/loc-gowalla_edges.txt.gz", "https://snap.stanford.edu/data/loc-gowalla_totalCheckins.txt.gz"],
-        ["https://drive.google.com/file/d/1PNk3zY8NjLcDiAbzjABzY5FiPAFHq6T8/view?usp=sharing"]
-    ]
+    """
+    Download the datasets from the web and unzip them. The datasets are downloaded from the SNAP website and from a Google Drive folder.
 
-    folders = ["brightkite", "gowalla", "foursquare"]
+    Parameters
+    ----------
+    None
+
+    Returns
+    -------
+    None
+
+    Notes
+    -----
+    The datasets are downloaded in the "data" folder. If the folder doesn't exist, it will be created. If the dataset is already downloaded, it will be skipped. The files are renamed to make them more readable.
+    """
+
+
+    dict = {
+        "brightkite": ["https://snap.stanford.edu/data/loc-brightkite_edges.txt.gz", "https://snap.stanford.edu/data/loc-brightkite_totalCheckins.txt.gz"],
+        "gowalla": ["https://snap.stanford.edu/data/loc-gowalla_edges.txt.gz", "https://snap.stanford.edu/data/loc-gowalla_totalCheckins.txt.gz"],
+        "foursquare": ["https://drive.google.com/file/d/1PNk3zY8NjLcDiAbzjABzY5FiPAFHq6T8/view?usp=sharing"]
+        }
 
     if not os.path.exists("data"):
         os.mkdir("data")
+        print("Created data folder")
 
-    for folder in folders:
+    for folder in dict.keys():
         if not os.path.exists(os.path.join("data", folder)):
             os.mkdir(os.path.join("data", folder))
+            print("Created {} folder".format(folder))
 
-    # Download every url in their respective folder. For the last one, we have to use gdown, because it's a google drive link. If the file is already downloaded, skip the download
+    ## DOWNLOADING ##
 
-    for i in range(len(urls)):
-        for url in urls[i]:
-            if not os.path.exists(os.path.join("data", folders[i], url.split("/")[-1])):
-                if i == 2:
-                    output = os.path.join("data", folders[i], "something.zip")
+    for folder in dict.keys():
+        for url in dict[folder]:
+            if folder == "foursquare":
+                if not os.path.exists(os.path.join("data", folder, "foursquare_full.zip")):
+                    output = os.path.join("data", folder, "foursquare_full.zip")
                     gdown.download(url, output, quiet=False, fuzzy=True)
-                else:
-                    wget.download(url, os.path.join("data", folders[i]))
+                else :
+                    print("{} already downloaded".format(url))
+            else:
+                if not os.path.exists(os.path.join("data", folder, url.split("/")[-1])):
+                    print("Downloading {}...".format(url))
+                    wget.download(url, os.path.join("data", folder))
+                else :
+                    print("{} already downloaded".format(url))
 
-    # unzip all the files in the 3 folders. Then remove the .gz or .zip files
+    ## UNZIPPING ##
 
-    for folder in folders:
+    for folder in dict.keys():
         for file in os.listdir(os.path.join("data", folder)):
-            print(folder, file)
             if file.endswith(".gz"):
+                print("Unzipping {}...".format(file))
                 os.system("gunzip {}".format(os.path.join("data", folder, file)))
             elif file.endswith(".zip"):
-                os.system("unzip {}".format(os.path.join("data", folder, file)))
+                print("Unzipping {}...".format(file))
+                os.system("unzip -o {} -d {}".format(os.path.join("data", folder, file), os.path.join("data", folder)))
                 os.remove(os.path.join("data", folder, file))
 
-    # take all the .txt files from data/foursquare/dataset_WWW2019 and move them to data/foursquare
+    ## FOURSQUARE CLEANING ##
 
     for file in os.listdir(os.path.join("data", "foursquare", "dataset_WWW2019")):
         if file.endswith(".txt"):
             os.rename(os.path.join("data", "foursquare", "dataset_WWW2019", file), os.path.join("data", "foursquare", file))
 
-    # remove the dataset_WWW2019 folder, note that is not empty
-    # os.rmdir(os.path.join("data", "foursquare", "dataset_WWW2019"))
-
-    for file in ["dataset_WWW_friendship_old.txt", "dataset_WWW_readme.txt", "raw_Checkins_anonymized.txt", "raw_POIs.txt"]:
+    for file in ["dataset_WWW_friendship_old.txt", "dataset_WWW_readme.txt", "raw_Checkins_anonymized.txt"]:
         os.remove(os.path.join("data", "foursquare", file))
 
-    # Now we want to clean our data and rename the files.
+    shutil.rmtree(os.path.join("data", "foursquare", "dataset_WWW2019"))
+    shutil.rmtree(os.path.join("data", "foursquare", "__MACOSX"))
 
-    for file in os.listdir(os.path.join("data", "brightkite")):
-        if file.endswith("_edges.txt"):
-            os.rename(os.path.join("data", "brightkite", file), os.path.join("data", "brightkite", "brightkite_friends_edges.txt"))
+    os.rename(os.path.join("data", "foursquare", "dataset_WWW_friendship_new.txt"), os.path.join("data", "foursquare", "foursquare_friends_edges.txt"))
 
-    for file in os.listdir(os.path.join("data", "gowalla")):
-        if file.endswith("_edges.txt"):
-            os.rename(os.path.join("data", "gowalla", file), os.path.join("data", "gowalla", "gowalla_friends_edges.txt"))
+    os.rename(os.path.join("data", "foursquare", "dataset_WWW_Checkins_anonymized.txt"), os.path.join("data", "foursquare", "foursquare_checkins.txt"))
 
-    for file in os.listdir(os.path.join("data", "foursquare")):
-        if file.endswith("dataset_WWW_friendship_new.txt"):
-            os.rename(os.path.join("data", "foursquare", file), os.path.join("data", "foursquare", "foursquare_friends_edges.txt"))
+    ## BRIGHTKITE CLEANING ##
 
-    # Now we from the _totalCheckins.txt files we want to keep only the first and last column, which are the user ID and the venue ID. We also want to remove the header of the file.
+    os.rename(os.path.join("data", "brightkite", "loc-brightkite_totalCheckins.txt"), os.path.join("data", "brightkite", "brightkite_checkins.txt"))
 
-    for file in os.listdir(os.path.join("data", "brightkite")):
-        if file.endswith("_totalCheckins.txt"):
-            df = pd.read_csv(os.path.join("data", "brightkite", file), sep="\t", header=None, names=["user_id", "check-in time", "latitude", "longitude", "venue_id"])
-            df["check-in time"] = pd.to_datetime(df["check-in time"])
-            df = df[df["check-in time"].dt.year == 2010]
-            df = df.drop(["check-in time", "latitude", "longitude"], axis=1)
-            df.to_csv(os.path.join("data", "brightkite", "brightkite_checkins.txt"), sep="\t", header=False, index=False, errors="ignore", encoding="utf-8")
-            os.remove(os.path.join("data", "brightkite", file))
+    os.rename(os.path.join("data", "brightkite", "loc-brightkite_edges.txt"), os.path.join("data", "brightkite", "brightkite_friends_edges.txt"))
 
-    for file in os.listdir(os.path.join("data", "gowalla")):
-        if file.endswith("_totalCheckins.txt"):
-            df = pd.read_csv(os.path.join("data", "gowalla", file), sep="\t", header=None, names=["user_id", "check-in time", "latitude", "longitude", "venue_id"])
-            df["check-in time"] = pd.to_datetime(df["check-in time"])
-            df = df[df["check-in time"].dt.year == 2010]
-            df = df.drop(["check-in time", "latitude", "longitude"], axis=1)
-            df.to_csv(os.path.join("data", "gowalla", "gowalla_checkins.txt"), sep="\t", header=False, index=False, errors="ignore", encoding="utf-8")
-            os.remove(os.path.join("data", "gowalla", file))
+    ## GOWALLA CLEANING ##
 
-    for file in os.listdir(os.path.join("data", "foursquare")):
-        if file.endswith("dataset_WWW_Checkins_anonymized.txt"):
-            df = pd.read_csv(os.path.join("data", "foursquare", file), sep="\t", header=None)
-            df = df[[0, 1]]
-            df.to_csv(os.path.join("data", "foursquare", "foursquare_checkins.txt"), sep="\t", header=False, index=False, errors="ignore", encoding="utf-8")
-            os.remove(os.path.join("data", "foursquare", file))
+    os.rename(os.path.join("data", "gowalla", "loc-gowalla_totalCheckins.txt"), os.path.join("data", "gowalla", "gowalla_checkins.txt"))
+
+    os.rename(os.path.join("data", "gowalla", "loc-gowalla_edges.txt"), os.path.join("data", "gowalla", "gowalla_friends_edges.txt"))
 
 # ------------------------------------------------------------------------#
 
@@ -145,7 +145,7 @@ def create_graph_from_checkins(dataset: Literal['brightkite', 'gowalla', 'foursq
     if dataset not in ['brightkite', 'gowalla', 'foursquare']:
         raise ValueError("Dataset not valid. Please choose between brightkite, gowalla, foursquare")
 
-    
+
     file = os.path.join("data", dataset, dataset + "_checkins.txt")
 
     print("\nCreating the graph for the dataset {}...".format(dataset))
@@ -173,7 +173,7 @@ def create_graph_from_checkins(dataset: Literal['brightkite', 'gowalla', 'foursq
 
     return G
 
-    
+
 # ------------------------------------------------------------------------#
 
 def create_friendships_graph(dataset: Literal['brightkite', 'gowalla', 'foursquareEU', 'foursquareIT']) -> nx.Graph:
@@ -200,7 +200,7 @@ def create_friendships_graph(dataset: Literal['brightkite', 'gowalla', 'foursqua
     if dataset not in ["brightkite", "gowalla", "foursquare"]:
         raise ValueError("The dataset must be brightkite, gowalla or foursquare")
 
-   
+
     file = os.path.join("data", dataset, dataset + "_friends_edges.txt")
 
     df_friends_all = pd.read_csv(file, sep="\t", header=None, names=["node1", "node2"], engine='pyarrow')
@@ -469,7 +469,7 @@ def average_clustering_coefficient(G: nx.Graph, k=None) -> float:
 
 
 def generalized_average_clustering_coefficient(G: nx.Graph) -> float:
-    
+
     """
     Generalized definition of the average clustering coefficient of a graph. It better applies to small world networks and it's way more efficient than the average_clustering_coefficient function with the standard definition of the clustering coefficient.
 
@@ -483,7 +483,7 @@ def generalized_average_clustering_coefficient(G: nx.Graph) -> float:
     float
         The generalized average clustering coefficient of the graph.
     """
-    
+
     C = 0
     for node in G.nodes():
         k = G.degree(node)
@@ -547,5 +547,3 @@ def create_random_graphs(G: nx.Graph, model = None, save = True) -> nx.Graph:
             print("\tThe file graph has been saved in the folder data/random/watts_strogatz with the syntax watts_strogatz_n_nodes_n_edges.gpickle")
 
         return G_random
-
-    

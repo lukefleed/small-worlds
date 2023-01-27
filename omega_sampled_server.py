@@ -28,9 +28,8 @@ def random_sample(graph, k):
     return G_connected
 
 if __name__ == "__main__":
-    # use argparse to take as input the name of the graph, the options are "foursquare", "gowalla" and "brightkite"
     parser = argparse.ArgumentParser()
-    parser.add_argument("graph", help="Name of the graph to be used. Options are 'foursquare', 'gowalla' and 'brightkite'")
+    parser.add_argument("graph", help="Name of the graph to be used. Options are 'checkins-foursquare',  'checkins-gowalla', 'checkins-brightkite', 'friends-foursquare', 'friends-gowalla', 'friends-brightkite'")
     parser.add_argument("k", help="Percentage of nodes to be sampled. Needs to be a float between 0 and 1")
     parser.add_argument("niter", help="Number of rewiring per edge. Needs to be an integer. Default is 5")
     parser.add_argument("nrand", help="Number of random graphs. Needs to be an integer. Default is 5")
@@ -46,8 +45,12 @@ if __name__ == "__main__":
         print("No input for nrand. Setting it to default value: 5")
         args.nrand = 5
 
-    # create the graph. G = create_graph_from_checkins('name') where name is the input argument of graph
-    G = create_graph_from_checkins(str(args.graph))
+    # the name of the graph is the first part of the input string
+    name = args.graph.split('-')[1]
+    if 'checkins' in args.graph:
+        G = create_graph_from_checkins(name)
+    elif 'friends' in args.graph:
+        G = create_friendships_graph(name)
     G.name = str(args.graph) + " Checkins Graph"
 
     # sample the graph

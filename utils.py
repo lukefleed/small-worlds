@@ -501,7 +501,7 @@ def create_random_graphs(G: nx.Graph, model = None, save = True) -> nx.Graph:
     G : nx.Graph
         The original graph.
     model : str
-        The model to use to generate the random graphs. It can be one of the following: "erdos", "barabasi", "watts_strogatz", "newman_watts_strog
+        The model to use to generate the random graphs. It can be one of the following: "erdos", "watts_strogatz"
     save: bool
         If True, the random graph is saved in the folder data/random/model
 
@@ -516,8 +516,9 @@ def create_random_graphs(G: nx.Graph, model = None, save = True) -> nx.Graph:
 
     if model == "erdos":
         G_random = nx.erdos_renyi_graph(G.number_of_nodes(), nx.density(G))
-        print("\tNumber of edges in the original graph: {}" .format(G.number_of_edges()))
-        print("\tNumber of edges in the random graph: {}" .format(G_random.number_of_edges()))
+        print("Creating a random graph with the Erdos-Renyi model {}" .format(G.name))
+        print("Number of edges in the original graph: {}" .format(G.number_of_edges()))
+        print("Number of edges in the random graph: {}" .format(G_random.number_of_edges()))
         G_random.name = G.name + " Erdos-Renyi"
 
         if save:
@@ -534,8 +535,8 @@ def create_random_graphs(G: nx.Graph, model = None, save = True) -> nx.Graph:
         p = G.number_of_edges() / (G.number_of_nodes())
         avg_degree = int(np.mean([d for n, d in G.degree()]))
         G_random = nx.watts_strogatz_graph(G.number_of_nodes(), avg_degree, p)
-        print("\tNumber of edges in the original graph: {}" .format(G.number_of_edges()))
-        print("\tNumber of edges in the random graph: {}" .format(G_random.number_of_edges()))
+        print("Number of edges in the original graph: {}" .format(G.number_of_edges()))
+        print("Number of edges in the random graph: {}" .format(G_random.number_of_edges()))
         G_random.name = G.name + " Watts-Strogatz"
 
         if save:

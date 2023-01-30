@@ -512,9 +512,9 @@ def create_random_graphs(G: nx.Graph, model = None, save = True) -> nx.Graph:
     """
 
     if model is None:
-        model = "erdos"
+        model = "erdos_renyi"
 
-    if model == "erdos":
+    if model == "erdos_renyi":
         G_random = nx.erdos_renyi_graph(G.number_of_nodes(), nx.density(G))
         print("Creating a random graph with the Erdos-Renyi model {}" .format(G.name))
         print("Number of edges in the original graph: {}" .format(G.number_of_edges()))

@@ -143,8 +143,10 @@ data/
 *.toc
 *.txt
 
+# Working directories, not to be committed
 .vscode/
 backup/
 sources/
 extra/
 html_graphs/
+tex/

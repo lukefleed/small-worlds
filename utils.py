@@ -23,6 +23,7 @@ import numpy as np
 import gdown
 from networkx.utils import py_random_state
 import shutil
+from pyvis.network import Network
 
 # ------------------------------------------------------------------------#
 
@@ -100,21 +101,15 @@ def download_datasets():
 
     shutil.rmtree(os.path.join("data", "foursquare", "dataset_WWW2019"))
     shutil.rmtree(os.path.join("data", "foursquare", "__MACOSX"))
-
     os.rename(os.path.join("data", "foursquare", "dataset_WWW_friendship_new.txt"), os.path.join("data", "foursquare", "foursquare_friends_edges.txt"))
-
-    os.rename(os.path.join("data", "foursquare", "dataset_WWW_Checkins_anonymized.txt"), os.path.join("data", "foursquare", "foursquare_checkins.txt"))
+    os.rename(os.path.join("data", "foursquare", "dataset_WWW_Checkins_anonymized.txt"), os.path.join("data", "foursquare", "foursquare_checkins_full.txt"))
 
     ## BRIGHTKITE CLEANING ##
-
-    os.rename(os.path.join("data", "brightkite", "loc-brightkite_totalCheckins.txt"), os.path.join("data", "brightkite", "brightkite_checkins.txt"))
-
+    os.rename(os.path.join("data", "brightkite", "loc-brightkite_totalCheckins.txt"), os.path.join("data", "brightkite", "brightkite_checkins_full.txt"))
     os.rename(os.path.join("data", "brightkite", "loc-brightkite_edges.txt"), os.path.join("data", "brightkite", "brightkite_friends_edges.txt"))
 
     ## GOWALLA CLEANING ##
-
-    os.rename(os.path.join("data", "gowalla", "loc-gowalla_totalCheckins.txt"), os.path.join("data", "gowalla", "gowalla_checkins.txt"))
-
+    os.rename(os.path.join("data", "gowalla", "loc-gowalla_totalCheckins.txt"), os.path.join("data", "gowalla", "gowalla_checkins_full.txt"))
     os.rename(os.path.join("data", "gowalla", "loc-gowalla_edges.txt"), os.path.join("data", "gowalla", "gowalla_friends_edges.txt"))
 
 # ------------------------------------------------------------------------#
@@ -392,7 +387,7 @@ def average_shortest_path(G: nx.Graph, k=None) -> float:
         ----------
         `G` : networkx graph
             The graph to compute the average shortest path length of.
-        `k` : int
+        `k` : float
             percentage of nodes to remove from the graph. If k is None, the average shortest path length of each connected component is computed using all the nodes of the connected component.
 
         Returns
@@ -548,3 +543,90 @@ def create_random_graphs(G: nx.Graph, model = None, save = True) -> nx.Graph:
             print("\tThe file graph has been saved in the folder data/random/watts_strogatz with the syntax watts_strogatz_n_nodes_n_edges.gpickle")
 
         return G_random
+
+
+def visualize_graphs(G: nx.Graph, k: float, connected = True):
+
+    """
+    Function to visualize the graph in a HTML page using pyvis
+
+    Parameters
+    ----------
+    G: nx.Graph
+        The graph to visualize
+
+    k: float
+        The percentage of nodes to remove from the graph. Default is None, in which case it will be chosen such that there are about 1000 nodes in the sampled graph. I strongly suggest to use the default value, other wise the visualization will be very slow.
+
+    connected: bool
+        If True, we will consider only the largest connected component of the graph
+
+    Returns
+    -------
+    html file
+        The html file containing the visualization of the graph
+
+    Notes:
+    ------
+    This is of course an approximation, it's nice to have an idea of the graph, but it's not a good idea trying to understand the graph in details from this sampled visualization.
+    """
+
+    if k is None:
+        if len(G.nodes) > 1500:
+            k = 1 - 1500/len(G.nodes)
+        else:
+            k = 0
+
+    # remove a percentage of the nodes
+    nodes_to_remove = np.random.choice(list(G.nodes), size=int(k*len(G.nodes)), replace=False)
+    G.remove_nodes_from(nodes_to_remove)
+
+    if connected:
+        # take only the largest connected component
+        connected_components = list(nx.connected_components(G))
+        largest_connected_component = max(connected_components, key=len)
+        G = G.subgraph(largest_connected_component)
+
+
+    # create a networkx graph
+    net = net = Network(directed=False, bgcolor='#1e1f29', font_color='white')
+
+    # for some reasons, if I put % values, the graph is not displayed correctly. So I use pixels, sorry non FHD users
+    net.width = '1920px'
+    net.height = '1080px'
+
+    # add nodes and edges
+    net.add_nodes(list(G.nodes))
+    net.add_edges(list(G.edges))
+
+    # set the physics layout of the network
+    net.set_options("""
+        var options = {
+        "edges": {
+            "color": {
+            "inherit": true
+            },
+            "smooth": false
+        },
+        "physics": {
+            "repulsion": {
+            "centralGravity": 0.25,
+            "nodeDistance": 500,
+            "damping": 0.67
+            },
+            "maxVelocity": 48,
+            "minVelocity": 0.39,
+            "solver": "repulsion"
+        }
+        }
+        """)
+
+    name = G.name.replace(" ", "_").lower()
+
+    if not os.path.exists("html_graphs"):
+        os.mkdir("html_graphs")
+
+    # save the graph in a html file
+    net.show("html_graphs/{}.html".format(name))
+
+    print("The graph has been saved in the folder html_graphs with the name {}.html" .format(name))

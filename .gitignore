@@ -149,4 +149,6 @@ backup/
 sources/
 extra/
 html_graphs/
+
+# ignore the tex folder
 tex/

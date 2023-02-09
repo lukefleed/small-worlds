@@ -502,8 +502,8 @@ def create_random_graphs(G: nx.Graph, model = None, save = True) -> nx.Graph:
     if model == "erdos_renyi":
         G_random = nx.erdos_renyi_graph(G.number_of_nodes(), nx.density(G))
         print("Creating a random graph with the Erdos-Renyi model {}" .format(G.name))
-        print("Number of edges in the original graph: {}" .format(G.number_of_edges()))
-        print("Number of edges in the random graph: {}" .format(G_random.number_of_edges()))
+        # print("Number of edges in the original graph: {}" .format(G.number_of_edges()))
+        # print("Number of edges in the random graph: {}" .format(G_random.number_of_edges()))
         G_random.name = G.name + " Erdos-Renyi"
 
         if save:
@@ -520,8 +520,8 @@ def create_random_graphs(G: nx.Graph, model = None, save = True) -> nx.Graph:
         p = G.number_of_edges() / (G.number_of_nodes())
         avg_degree = int(np.mean([d for n, d in G.degree()]))
         G_random = nx.watts_strogatz_graph(G.number_of_nodes(), avg_degree, p)
-        print("Number of edges in the original graph: {}" .format(G.number_of_edges()))
-        print("Number of edges in the random graph: {}" .format(G_random.number_of_edges()))
+        # print("Number of edges in the original graph: {}" .format(G.number_of_edges()))
+        # print("Number of edges in the random graph: {}" .format(G_random.number_of_edges()))
         G_random.name = G.name + " Watts-Strogatz"
 
         if save:
@@ -635,7 +635,7 @@ def random_sample(graph: nx.Graph, k: float) -> nx.Graph:
         The graph to sample
 
     `k`: float
-        The percentage of nodes to sample from the graph.
+        The percentage of nodes to remove from the graph
 
     Returns
     -------
@@ -644,8 +644,7 @@ def random_sample(graph: nx.Graph, k: float) -> nx.Graph:
     """
 
     nodes = list(graph.nodes())
-    n = int(k*len(nodes))
-    nodes_sample = random.sample(nodes, n)
+    nodes_sample = np.random.choice(nodes, size=int((1-k)*len(nodes)), replace=False)
 
     G = graph.subgraph(nodes_sample)
 
@@ -653,8 +652,6 @@ def random_sample(graph: nx.Graph, k: float) -> nx.Graph:
         print("Graph is not connected. Taking the largest connected component")
         connected = max(nx.connected_components(G), key=len)
         G_connected = graph.subgraph(connected)
-
-    print(nx.is_connected(G_connected))
 
     print("Number of nodes in the sampled graph: ", G.number_of_nodes())
     print("Number of edges in the sampled graph: ", G.number_of_edges())

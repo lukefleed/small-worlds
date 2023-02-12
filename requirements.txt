@@ -1,8 +1,8 @@
 gdown==4.6.0
-geopandas==0.12.2
+geopandas>=0.10.2
 matplotlib==3.6.2
 networkx==2.8.8
-numpy==1.24.0
+numpy>=1.18
 pandas==1.5.3
 plotly==5.5.0
 pyvis==0.3.1

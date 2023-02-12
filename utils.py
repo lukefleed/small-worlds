@@ -23,7 +23,6 @@ from subprocess import run
 from typing import Literal
 from queue import Empty
 
-
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(SCRIPT_DIR, "data")
 
@@ -46,7 +45,6 @@ def download_datasets():
     -----
     The datasets are downloaded in the "data" folder. If the folder doesn't exist, it will be created. If the dataset is already downloaded, it will be skipped. The files are renamed to make them more readable.
     """
-
 
     dict = {
         "brightkite": ["https://snap.stanford.edu/data/loc-brightkite_edges.txt.gz", "https://snap.stanford.edu/data/loc-brightkite_totalCheckins.txt.gz"],
@@ -141,14 +139,13 @@ def create_graph_from_checkins(dataset: Literal['brightkite', 'gowalla', 'foursq
 
     Raises
     ------
-    ValueError
+    `ValueError`
         If the dataset is not valid.
 
     """
 
     if dataset not in ['brightkite', 'gowalla', 'foursquare']:
         raise ValueError("Dataset not valid. Please choose between brightkite, gowalla, foursquare")
-
 
     file = os.path.join(DATA_DIR, dataset, dataset + "_checkins.txt")
     print("\nCreating the graph for the dataset {}...".format(dataset))
@@ -162,7 +159,7 @@ def create_graph_from_checkins(dataset: Literal['brightkite', 'gowalla', 'foursq
 
     # path to the file where we want to save the graph
     edges_path = os.path.join(DATA_DIR, dataset , dataset + "_checkins_edges.tsv")
-    print("Done! The graph has {} edges".format(G.number_of_edges()), " and {} nodes".format(G.number_of_nodes()))
+    print("Done! The graph has {} edges".format(G.number_of_edges()), "and {} nodes".format(G.number_of_nodes()))
 
     # delete from memory the dataframe
     del df
@@ -173,19 +170,20 @@ def create_graph_from_checkins(dataset: Literal['brightkite', 'gowalla', 'foursq
 
     return G
 
-
 # ------------------------------------------------------------------------#
 
-def create_friendships_graph(dataset: Literal['brightkite', 'gowalla', 'foursquareEU', 'foursquareIT']) -> nx.Graph:
+def create_friendships_graph(dataset: Literal['brightkite', 'gowalla', 'foursquareEU', 'foursquareIT'], create_file = True) -> nx.Graph:
 
     """
-    Create the graph of friendships for the dataset brightkite, gowalla or foursquare.
-    The graph is saved in a file.
+    Create the graph of friendships for the dataset brightkite, gowalla or foursquare. The graph is saved in a file.
 
     Parameters
     ----------
     `dataset` : str
         The dataset for which we want to create the graph of friendships.
+
+    `create_file` : bool, optional
+        If True, the graph is saved in a file, by default True
 
     Returns
     -------
@@ -213,10 +211,14 @@ def create_friendships_graph(dataset: Literal['brightkite', 'gowalla', 'foursqua
     # get the intersection of the two sets and filter the friendship graph
     unique_users = unique_friends.intersection(unique_checkins)
     df = df_friends_all[df_friends_all["node1"].isin(unique_users) & df_friends_all["node2"].isin(unique_users)]
-    df.to_csv(os.path.join(DATA_DIR, dataset, dataset + "_friends_edges_filtered.tsv"), sep="\t", header=False, index=False)
+
+    # save the graph in a file
+    if create_file:
+        df.to_csv(os.path.join(DATA_DIR, dataset, dataset + "_friends_edges_filtered.tsv"), sep="\t", header=False, index=False)
 
     G = nx.from_pandas_edgelist(df, "node1", "node2", create_using=nx.Graph())
     del df_friends_all, df_checkins, df # delete from memory the dataframes
+    print("Created the graph for the dataset {} with {} edges".format(dataset, G.number_of_edges()), "and {} nodes".format(G.number_of_nodes()))
 
     return G
 
@@ -327,8 +329,16 @@ def betweenness_centrality_parallel(G, processes=None, k =None) -> dict:
 
     Returns
     -------
-    dict
+    `dict`
+        Dictionary of nodes with betweenness centrality as the value.
 
+    Raises
+    ------
+    `ValueError`
+        If the number of processes is greater than the number of cores in the system
+
+    `ValueError`
+        If k is not None and k is not between 0 and 1
     Notes
     -----
     Do not use more then 6 process for big graphs, otherwise the memory will be full. Do it only if you have more at least 32 GB of RAM. For small graphs, you can use more processes.
@@ -357,10 +367,11 @@ def betweenness_centrality_parallel(G, processes=None, k =None) -> dict:
     if k is None:
         G_copy = G.copy()
 
-    p = Pool(processes=processes)
-    node_divisor = len(p._pool) * 4
-    node_chunks = list(chunks(G_copy.nodes(), G_copy.order() // node_divisor))
+    p = Pool(processes=processes) # create a pool of processes
+    node_divisor = len(p._pool) * 4 # number of nodes to be processed by each process
+    node_chunks = list(chunks(G_copy.nodes(), G_copy.order() // node_divisor)) # divide the nodes in chunks
     num_chunks = len(node_chunks)
+    # run the algorithm on each chunk
     bt_sc = p.starmap(
         nx.betweenness_centrality_subset,
         zip(
@@ -396,12 +407,12 @@ def average_shortest_path(G: nx.Graph, k=None) -> float:
 
         Returns
         -------
-        float
+        `float`
             The average shortest path length of the graph.
 
         Raises
         ------
-        ValueError
+        `ValueError`
             If `k` is not between 0 and 1
         """
 
@@ -412,12 +423,11 @@ def average_shortest_path(G: nx.Graph, k=None) -> float:
             connected_components = list(nx.connected_components(G))
         else:
             G_copy = G.copy()
-            # remove the k% of nodes from G
             G_copy.remove_nodes_from(random.sample(G_copy.nodes(), int((k)*G_copy.number_of_nodes())))
             print("\tNumber of nodes after removing {}% of nodes: {}" .format((k)*100, G_copy.number_of_nodes()))
             print("\tNumber of edges after removing {}% of nodes: {}" .format((k)*100, G_copy.number_of_edges()))
 
-        tmp = 0
+        tmp = 0 # temporary variable to store the sum of the average shortest path length of each connected component
         connected_components = list(nx.connected_components(G_copy))
         # remove all the connected components with less than 10 nodes
         connected_components = [c for c in connected_components if len(c) > 10]
@@ -445,12 +455,12 @@ def average_clustering_coefficient(G: nx.Graph, k=None) -> float:
 
     Returns
     -------
-    float
+    `float`
         The average clustering coefficient of the graph.
 
     Raises
     ------
-    ValueError
+    `ValueError`
         If `k` is not between 0 and 1
     """
 
@@ -461,9 +471,7 @@ def average_clustering_coefficient(G: nx.Graph, k=None) -> float:
         return nx.average_clustering(G)
 
     else:
-        G_copy = G.copy()
-        G_copy.remove_nodes_from(random.sample(list(G_copy.nodes()), int((k)*G_copy.number_of_nodes())))
-        print("\tNumber of nodes after removing {}% of nodes: {}" .format((k)*100, G_copy.number_of_nodes()))
+        G_copy = random_sample(G, k)
         return nx.average_clustering(G_copy)
 
 
@@ -479,7 +487,7 @@ def generalized_average_clustering_coefficient(G: nx.Graph) -> float:
 
     Returns
     -------
-    float
+    `float`
         The generalized average clustering coefficient of the graph.
     """
 
@@ -508,6 +516,10 @@ def create_random_graphs(G: nx.Graph, model = None, save = True) -> nx.Graph:
     Returns
     -------
     `G_random` : nx.Graph
+
+    Notes
+    -----
+    This is just a time-saving and approximate way to create random graphs. If you want more accurate random graphs, you should use the function `random_reference` from the `networkx` library.
 
     """
 
@@ -595,7 +607,7 @@ def visualize_graphs(G: nx.Graph, k: float, connected = True):
 
 
     # create a networkx graph
-    net = net = Network(directed=False, bgcolor='#1e1f29', font_color='white')
+    net = Network(directed=False, bgcolor='#1e1f29', font_color='white')
 
     # for some reasons, if I put % values, the graph is not displayed correctly. So I use pixels, sorry non FHD users
     net.width = '1920px'
@@ -652,14 +664,27 @@ def random_sample(graph: nx.Graph, k: float) -> nx.Graph:
     `k`: float
         The percentage of nodes to remove from the graph
 
+    Raises
+    ------
+    `ValueError`
+        If k is not between 0 and 1
+
     Returns
     -------
     `G`: nx.Graph
+        The sampled graph
 
     """
 
+    # edge cases
     if not 0 <= k <= 1:
         raise ValueError("Percentage of nodes needs to be between 0 and 1")
+    elif k == 0:
+        print("k is 0. Returning the original graph")
+        return graph
+    elif k == 1:
+        print("k is 1. Returning an empty graph")
+        return nx.Graph()
 
     nodes = list(graph.nodes())
     nodes_sample = np.random.choice(nodes, size=int((1-k)*len(nodes)), replace=False)
@@ -667,7 +692,7 @@ def random_sample(graph: nx.Graph, k: float) -> nx.Graph:
     G = graph.subgraph(nodes_sample)
 
     if not nx.is_connected(G):
-        print("Graph is not connected. Taking the largest connected component")
+        print("\nGraph is not connected. Taking the largest connected component")
         connected = max(nx.connected_components(G), key=len)
         G_connected = graph.subgraph(connected)
 
@@ -681,7 +706,7 @@ def random_sample(graph: nx.Graph, k: float) -> nx.Graph:
 def omega_sampled(G: nx.Graph, k: float, niter: int, nrand: int) -> float:
 
     """
-    Function to compute the omega index of a graph
+    Function to compute the omega index on a sampled graph
 
     Parameters
     ----------
@@ -701,7 +726,6 @@ def omega_sampled(G: nx.Graph, k: float, niter: int, nrand: int) -> float:
     -------
     `omega`: float
         The omega index of the graph
-
     """
 
     # sample the graph
@@ -739,23 +763,30 @@ def parallel_omega(G: nx.Graph, k: float, nrand: int = 6, niter: int = 6, n_proc
     `seed`: int
         The seed to use to generate the random graphs. Default is 42.
 
+    Raises
+    ------
+    `ValueError`
+        If n_processes is less than 1
+
     Returns
     -------
     `omega`: float
 
     Notes
     -----
-    This is just a notebook version of the program omega_parallel_server.py that you can find in the repository. This is supposed to be used just fo testing on small graphs.
-
+    This is an experimental function that has not been fully tested.
     """
 
     if n_processes is None:
         n_processes = multiprocessing.cpu_count()
     if n_processes > nrand:
         n_processes = nrand
+    if n_processes < 1:
+        raise ValueError("Number of processes needs to be at least 1")
 
     random.seed(seed)
     if not nx.is_connected(G):
+        # take the largest connected component
         G = G.subgraph(max(nx.connected_components(G), key=len))
 
     if len(G) == 1:
@@ -764,6 +795,7 @@ def parallel_omega(G: nx.Graph, k: float, nrand: int = 6, niter: int = 6, n_proc
     # sample the graph
     G = random_sample(G, k)
 
+    # we are using two queues to share the seeds and the results between the processes
     def worker(queue_seeds, queue_results): # worker function to be used in parallel
         while True:
             try:

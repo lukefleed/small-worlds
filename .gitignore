@@ -141,7 +141,6 @@ data/
 *.out
 *.synctex.gz
 *.toc
-*.txt
 
 # Working directories, not to be committed
 .vscode/

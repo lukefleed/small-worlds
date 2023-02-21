@@ -14,11 +14,11 @@ Time spent one the project since the beginning of 2023 (add ~20 hours for a real
 
 ### Notebook structure
 
-The core component of the project is a Jupyter Notebook named `main.ipynb`. The notebook is comprehensive and provides ample information to comprehend the study and its results.
+The core component of the project is a Jupyter Notebook named `main.ipynb`. The notebook provides ample information to comprehend the study and its results.
 
 - The notebook starts with a theoretical background of the study, delving into the theory of random networks. The Erdős-Rényi and Watts-Strogatz models receive particular attention, as their properties form the basis of the study.
 
-- Next, the experimental setup is presented. There is a detail description of the datasets, along with the methodology adopted for data extraction, transformation, and loading. In this section, the graphs are constructed from the raw data obtained from the datasets.
+- Next, the experimental setup is presented. There is a detailed description of the datasets, along with the methodology adopted for data extraction, transformation, and loading. In this section, the graphs are constructed from the raw data obtained from the datasets.
 
 - The properties of the constructed graphs are then calculated, including the average degree, average clustering coefficient, average shortest path length, and average betweenness centrality.
 
@@ -83,7 +83,7 @@ The project has been developed in Python 3.10.9, to install the required librari
 pip install -r requirements.txt
 ```
 
-**NOTE**: I have no access to Windows or MacOS machines, so I cannot guarantee whether the project will function optimally on these platforms. However, I have made a concerted effort to ensure broad compatibility by implementing the project in a manner that should allow for its seamless operation on any platform. All the functions have been test on a Arch Linux machine, with an AMD Ryzen 5 2600 processor and 16GB of RAM. The version of Python used is 3.10.9.
+**NOTE**: I have no access to Windows or MacOS machines, so I cannot guarantee whether the project will function optimally on these platforms. However, I have made a concerted effort to ensure broad compatibility by implementing the project in a manner that should allow for its seamless operation on any platform. All the functions have been test on a Arch Linux machine, with an AMD Ryzen 5 2600 processor and 16GB of RAM.
 
 ### Experimental
 

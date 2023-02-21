@@ -8,3 +8,4 @@ plotly==5.5.0
 pyvis==0.3.1
 tqdm==4.64.1
 wget==3.2
+pyarrow>=11.0.0

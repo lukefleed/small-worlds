@@ -52,10 +52,12 @@ def download_datasets():
         "foursquare": ["https://drive.google.com/file/d/1PNk3zY8NjLcDiAbzjABzY5FiPAFHq6T8/view?usp=sharing"]
         }
 
+    # Creating folders if they don't exist
     if not os.path.exists(DATA_DIR):
         os.mkdir(DATA_DIR)
         print("Created data folder")
 
+    # Creating subfolders if they don't exist
     for folder in dict.keys():
         if not os.path.exists(os.path.join(DATA_DIR, folder)):
             os.mkdir(os.path.join(DATA_DIR, folder))
@@ -121,7 +123,7 @@ def download_datasets():
 
 # ------------------------------------------------------------------------#
 
-def create_graph_from_checkins(dataset: Literal['brightkite', 'gowalla', 'foursquareEU', 'foursquareIT'], create_file = True) -> nx.Graph:
+def create_graph_from_checkins(dataset: Literal['brightkite', 'gowalla', 'foursquareEU', 'foursquareIT'], create_file= True) -> nx.Graph:
 
     """
     Create a graph from the checkins of the dataset. The graph is undirected and the nodes are the users and the edges are the checkins in common.
@@ -151,8 +153,13 @@ def create_graph_from_checkins(dataset: Literal['brightkite', 'gowalla', 'foursq
     print("\nCreating the graph for the dataset {}...".format(dataset))
     df = pd.read_csv(file, sep="\t", header=None, names=["user_id", "venue_id"], engine='pyarrow')
 
+    # Create an empty graph object
     G = nx.Graph()
+
+    # Get the unique list of users for each venue
     venues_users = df.groupby("venue_id")["user_id"].apply(set)
+
+    # For each venue, create an edge between each pair of users who checked in there
     for users in tqdm.tqdm(venues_users):
         for user1, user2 in combinations(users, 2):
             G.add_edge(user1, user2)
@@ -179,7 +186,7 @@ def create_friendships_graph(dataset: Literal['brightkite', 'gowalla', 'foursqua
 
     Parameters
     ----------
-    `dataset` : str
+    `dataset` : Literal['brightkite', 'gowalla', 'foursquare']
         The dataset for which we want to create the graph of friendships.
 
     `create_file` : bool, optional
@@ -206,10 +213,12 @@ def create_friendships_graph(dataset: Literal['brightkite', 'gowalla', 'foursqua
 
     # read the file with the edges of the check-ins graph and get the unique users
     df_checkins = pd.read_csv(os.path.join(DATA_DIR, dataset, dataset + "_checkins_edges.tsv"), sep="\t", header=None, names=["node1", "node2"])
+    # get the unique users in the check-ins graph
     unique_checkins = set(df_checkins["node1"].unique()).union(set(df_checkins["node2"].unique()))
 
     # get the intersection of the two sets and filter the friendship graph
     unique_users = unique_friends.intersection(unique_checkins)
+    # filter the friendship graph to keep only the edges between the users in the check-ins graph
     df = df_friends_all[df_friends_all["node1"].isin(unique_users) & df_friends_all["node2"].isin(unique_users)]
 
     # save the graph in a file
@@ -298,16 +307,16 @@ def chunks(l, n):
         Number of chunks
     """
 
-    l_c = iter(l)
+    l_c = iter(l) # create an iterator of l
     while 1:
-        x = tuple(itertools.islice(l_c, n))
+        x = tuple(itertools.islice(l_c, n)) # get the next n items from the iterator
         if not x:
             return
         yield x
 
 # ------------------------------------------------------------------------#
 
-def betweenness_centrality_parallel(G, processes=None, k =None) -> dict:
+def betweenness_centrality_parallel(G, processes:int =None, k:float = None) -> dict:
 
     """
     Compute the betweenness centrality for nodes in a graph using multiprocessing.
@@ -317,15 +326,12 @@ def betweenness_centrality_parallel(G, processes=None, k =None) -> dict:
     G : graph
         A networkx graph
 
-    processes : int, optional
+    `processes` : int, optional
         The number of processes to use for computation.
         If `None`, then it sets processes = 1
 
-    k : int, optional
+    `k` : float, optional
         Percent of nodes to sample. If `None`, then all nodes are used.
-
-    seed : int, optional
-        Seed for random number generator (default=None).
 
     Returns
     -------
@@ -350,7 +356,7 @@ def betweenness_centrality_parallel(G, processes=None, k =None) -> dict:
         G_copy = G.copy()
         sample = int((k)*G_copy.number_of_nodes())
         print("\tNumber of nodes after removing {} % of nodes: {}" .format((k)*100, G_copy.number_of_nodes()))
-        return np.mean(nx.betweenness_centrality(G, k=sample, seed=42).values())
+        return np.mean(nx.betweenness_centrality(G, k=sample).values())
 
     if processes > os.cpu_count():
         raise ValueError("The number of processes must be less than the number of cores in the system.")
@@ -372,11 +378,11 @@ def betweenness_centrality_parallel(G, processes=None, k =None) -> dict:
     node_chunks = list(chunks(G_copy.nodes(), G_copy.order() // node_divisor)) # divide the nodes in chunks
     num_chunks = len(node_chunks)
     # run the algorithm on each chunk
-    bt_sc = p.starmap(
+    bt_sc = p.starmap( # starmap is used to pass multiple arguments to the function
         nx.betweenness_centrality_subset,
         zip(
             [G_copy] * num_chunks, # this returns a list of Gs
-            node_chunks,
+            node_chunks, # this returns a list of lists of nodes
             [list(G_copy)] * num_chunks, # this returns a list of lists of nodes
             [True] * num_chunks,
             [None] * num_chunks,
@@ -384,16 +390,16 @@ def betweenness_centrality_parallel(G, processes=None, k =None) -> dict:
     )
 
     # Reduce the partial solutions
-    bt_c = bt_sc[0]
-    for bt in bt_sc[1:]:
-        for n in bt:
-            bt_c[n] += bt[n]
+    bt_c = bt_sc[0] # get the first partial solution
+    for bt in bt_sc[1:]: # iterate over the other partial solutions
+        for n in bt: # iterate over the nodes of the partial solution
+            bt_c[n] += bt[n] # sum the partial solutions
 
     return bt_c
 
 # ------------------------------------------------------------------------#
 
-def average_shortest_path(G: nx.Graph, k=None) -> float:
+def average_shortest_path(G: nx.Graph, k:float =None) -> float:
 
         """
         This function takes in input a networkx graph and returns the average shortest path length of the graph. This works also for disconnected graphs.
@@ -441,7 +447,7 @@ def average_shortest_path(G: nx.Graph, k=None) -> float:
 
 # ------------------------------------------------------------------------#
 
-def average_clustering_coefficient(G: nx.Graph, k=None) -> float:
+def average_clustering_coefficient(G: nx.Graph, k:float =None) -> float:
 
     """
     This function takes in input a networkx graph and returns the average clustering coefficient of the graph. This works also for disconnected graphs.
@@ -450,7 +456,7 @@ def average_clustering_coefficient(G: nx.Graph, k=None) -> float:
     ----------
     `G` : networkx graph
         The graph to compute the average clustering coefficient of.
-    `k` : int
+    `k` : float
         percentage of nodes to remove from the graph. If `k` is None, the average clustering coefficient of each connected component is computed using all the nodes of the connected component.
 
     Returns
@@ -467,7 +473,7 @@ def average_clustering_coefficient(G: nx.Graph, k=None) -> float:
     if k is not None and (k < 0 or k > 1):
         raise ValueError("k must be between 0 and 1")
 
-    elif k is None:
+    if k is None:
         return nx.average_clustering(G)
 
     else:
@@ -500,7 +506,7 @@ def generalized_average_clustering_coefficient(G: nx.Graph) -> float:
 
 # ------------------------------------------------------------------------#
 
-def create_random_graphs(G: nx.Graph, model = None, save = True) -> nx.Graph:
+def create_random_graphs(G: nx.Graph, model: str = None, save: bool = True) -> nx.Graph:
 
     """Create a random graphs with about the same number of nodes and edges of the original graph.
 
@@ -703,7 +709,7 @@ def random_sample(graph: nx.Graph, k: float) -> nx.Graph:
 
 # ------------------------------------------------------------------------#
 
-def omega_sampled(G: nx.Graph, k: float, niter: int, nrand: int) -> float:
+def omega_sampled(G: nx.Graph, k: float, niter: int = 6, nrand: int = 6, seed: int = None) -> float:
 
     """
     Function to compute the omega index on a sampled graph
@@ -732,13 +738,13 @@ def omega_sampled(G: nx.Graph, k: float, niter: int, nrand: int) -> float:
     G_sampled = random_sample(G, k)
 
     # compute the omega index
-    omega = nx.omega(G_sampled, nrand, niter)
+    omega = nx.omega(G_sampled, nrand, niter, seed = seed)
 
     return omega
 
 # ------------------------------------------------------------------------#
 
-def parallel_omega(G: nx.Graph, k: float, nrand: int = 6, niter: int = 6, n_processes: int = None, seed: int = 42) -> float:
+def parallel_omega(G: nx.Graph, k: float, nrand: int = 6, niter: int = 6, n_processes: int = None, seed: int = None) -> float:
 
     """
     function to compute the omega index of a graph in parallel. This is a much faster approach then the standard omega function. It parallelizes the computation of the random graphs and lattice networks.
@@ -761,7 +767,7 @@ def parallel_omega(G: nx.Graph, k: float, nrand: int = 6, niter: int = 6, n_proc
         Number of processes to use. Default is the number of cores of the machine.
 
     `seed`: int
-        The seed to use to generate the random graphs. Default is 42.
+        The seed to use to generate the random graphs. Default is None.
 
     Raises
     ------
@@ -784,7 +790,9 @@ def parallel_omega(G: nx.Graph, k: float, nrand: int = 6, niter: int = 6, n_proc
     if n_processes < 1:
         raise ValueError("Number of processes needs to be at least 1")
 
-    random.seed(seed)
+    # if seed is None:
+    #     seed = np.random.randint(100000)
+
     if not nx.is_connected(G):
         # take the largest connected component
         G = G.subgraph(max(nx.connected_components(G), key=len))
@@ -797,16 +805,16 @@ def parallel_omega(G: nx.Graph, k: float, nrand: int = 6, niter: int = 6, n_proc
 
     # we are using two queues to share the seeds and the results between the processes
     def worker(queue_seeds, queue_results): # worker function to be used in parallel
-        while True:
-            try:
-                seed = queue_seeds.get(False)
-            except Empty:
-                break
-            random_graph = nx.random_reference(G, niter, seed=seed)
-            lattice_graph = nx.lattice_reference(G, niter, seed=seed)
-            random_shortest_path = nx.average_shortest_path_length(random_graph)
-            lattice_clustering = nx.average_clustering(lattice_graph)
-            queue_results.put((random_shortest_path, lattice_clustering))
+        while True: # loop until the queue is empty
+            try: # try to get a seed from the queue
+                seed = queue_seeds.get(False) # get the seed
+            except Empty: # if the queue is empty
+                break # break the loop
+            random_graph = nx.random_reference(G, niter, seed=seed) # generate the random graph
+            lattice_graph = nx.lattice_reference(G, niter, seed=seed) # generate the lattice graph
+            random_shortest_path = nx.average_shortest_path_length(random_graph) # compute the average shortest path length
+            lattice_clustering = nx.average_clustering(lattice_graph) # compute the average clustering coefficient
+            queue_results.put((random_shortest_path, lattice_clustering)) # put the results in the queue
 
     manager = multiprocessing.Manager() # manager to share the queue
     queue_seeds = manager.Queue() # queue to give the seeds to the processes
